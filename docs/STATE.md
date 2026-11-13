@@ -6,9 +6,9 @@
 ## Estado actual
 
 - Fecha: 2026-11-13.
-- Fase: **Fase 0 cerrada**. Sin código de mod todavía.
-- Build/tests: no aplica; el repo solo contiene documentación.
-- Aprobación del owner para pasar a Fase 1: **pendiente**.
+- Fase: **Fase 1 implementada; falta prueba en el juego**.
+- Build/tests: `gradlew build` verde. 2 tests unitarios del escritor de dumps.
+- Aprobación del owner para Fase 1: **dada** (eligió modo C y aceptó el riesgo).
 
 ## Hecho
 
@@ -19,6 +19,10 @@
 - `docs/OPEN_QUESTIONS.md`: bloqueantes B1, B2, B8 y resto.
 - Identificado DonutProfit real en `../oreboard` (no se modificó).
 - Contrato de orders y lista demo de 60 ítems documentados.
+- Mod Fabric 1.21.11 con keybind F8 que vuelca la pantalla abierta a JSON.
+- `docs/CAPTURE_GUIDE.md` con los pasos exactos de captura.
+- Toolchain local: JDK 25 en `.tools/` (Loom 1.19.4 lo exige para compilar;
+  el mod compila con `--release 21` y corre en Java 21).
 
 ## Decisiones tomadas
 
@@ -33,22 +37,23 @@
 
 ## Próximo paso exacto
 
-1. Owner responde B1, B2 y B3 (versión, riesgo, lista de ítems).
-2. Si B1 = 1.21.11: clonar/adaptar el template oficial de Fabric para 1.21.11,
-   fijar Loader `0.20.1`, Fabric API `0.141.6+1.21.11`, Java 21.
-3. Implementar el volcado de Fase 1 (keybind + escritura de dump JSON).
-4. Compilar, ejecutar `./gradlew build`, commit `feat: add screen dump tool`.
-5. Probar en el juego y adjuntar dumps; actualizar `STATE.md`.
-
-Si B1 = 26.3: instalar JDK 25, Loom actual, mappings de Mojang, Fabric API
-`0.166.2+26.3`; el resto del plan no cambia.
+1. Owner instala `build/libs/donut-order-scanner-0.1.0.jar` con Fabric 1.21.11 y
+   Fabric API `0.141.6+1.21.11`.
+2. Sigue `docs/CAPTURE_GUIDE.md`: `/orders`, búsqueda, página 2, menú vacío,
+   cantidad grande y cantidad 1.
+3. Apreta F8 en cada menú y pasa los `.json` de
+   `%APPDATA%\.minecraft\config\donut-order-scanner\dumps\`.
+4. Con los dumps: escribir fixtures, parser puro y tests (Fase 2).
+5. Si el cliente no entra con 1.21.11: recompilar para 26.3 (Fabric API
+   `0.166.2+26.3`, Java 25, mappings de Mojang). El código de dump es portable.
 
 ## Bloqueos
 
-- B1: versión real del cliente.
-- B2: aceptación del riesgo de ban.
-- B3: lista de ítems.
-- B8 (solo Fase 3): alcance del modo activo.
+- B1: confirmar que el cliente entra con 1.21.11. Si no, portar a 26.3.
+- B2: resuelto. El owner aceptó el riesgo y eligió modo autónomo (C).
+- B3: lista de ítems. Provisional: los 60 del seed de DonutProfit.
+- B8: resuelto. Modo C, con jitter/pausas/topes y sin evasión.
+- Dumps reales: sin ellos no se escribe el parser (Fase 2).
 
 ## Comandos previstos
 

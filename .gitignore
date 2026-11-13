@@ -1,3 +1,6 @@
+# Local toolchain (JDK 25 for Loom; not part of the mod)
+.tools/
+
 # Gradle / Java
 .gradle/
 build/

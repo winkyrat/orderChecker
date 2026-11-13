@@ -1,0 +1,23 @@
+{
+	"schemaVersion": 1,
+	"id": "donut_order_scanner",
+	"version": "${version}",
+	"name": "Donut Order Scanner",
+	"description": "Read-only reconnaissance of open container screens, built to capture DonutSMP order menus.",
+	"authors": [
+		"DonutProfit"
+	],
+	"license": "UNLICENSED",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"dev.donutprofit.orderscanner.client.OrderScannerClient"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
