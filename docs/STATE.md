@@ -80,13 +80,32 @@ Evidencia en `src/test/resources/fixtures/orders-glass-page1.json`.
 
 | Archivo | Contenido |
 | --- | --- |
-| Archivo | Contenido |
-| --- | --- |
 | `orders_page_1-<ms>.json` | Dump crudo (evidencia, todos los slots). |
 | `orders-p1-<ms>.json` | Export de esa captura, formato DonutProfit. |
 | `orders.json` | Snapshot acumulado: mejor precio por ítem, cada fila con su `observedAt`. |
 
 `orders.json` es el archivo que se le pasa a DonutProfit.
+
+### Validación del contrato (2026-11-13, sin tocar DonutProfit)
+
+El export generado desde el fixture real se pasó por el cargador de DonutProfit
+en **dry run** (`pnpm db:load-orders <archivo>`, sin `--commit`):
+
+```
+Orders: 45 across 8 items.
+Observed at: 2026-11-13T04:24:17.195577Z
+  minecraft:glass: 22 rows, 2308093 units
+  ...
+Dry run: nothing written.
+```
+
+45 filas, **0 filas descartadas**. `orders.json` es aceptado tal cual. Se puede
+repetir con cualquier captura nueva:
+
+```powershell
+cd "..\oreboard"
+npx tsx scripts/load-orders.ts "<ruta>\orders.json"
+```
 
 ## Decisiones tomadas
 
