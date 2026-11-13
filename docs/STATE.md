@@ -43,6 +43,11 @@ Perfil aislado, para no mezclar Wurst con DonutSMP:
 - Identificado DonutProfit real en `../oreboard` (no se modificó).
 - Contrato de orders y lista demo de 60 ítems documentados.
 - Mod Fabric 1.21.11 con keybind F8 que vuelca la pantalla abierta a JSON.
+- **Fix 0.1.1:** vanilla ignora los keybinds mientras hay una pantalla abierta,
+  así que F8 no podía dumpear con el menú abierto (síntoma: "No screen open"
+  en el chat justo después de cerrar el menú). Ahora el mod escucha
+  `ScreenKeyboardEvents.allowKeyPress` por pantalla y consume la tecla. Sonido
+  de confirmación porque el chat no se ve con un contenedor abierto.
 - `docs/CAPTURE_GUIDE.md` con los pasos exactos de captura.
 - Toolchain local: JDK 25 en `.tools/` (Loom 1.19.4 lo exige para compilar;
   el mod compila con `--release 21` y corre en Java 21).

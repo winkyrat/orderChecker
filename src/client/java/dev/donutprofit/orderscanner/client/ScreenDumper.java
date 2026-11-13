@@ -8,9 +8,11 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.component.TypedDataComponent;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -34,9 +36,8 @@ public final class ScreenDumper {
     private ScreenDumper() {
     }
 
-    public static void dump(Minecraft client) {
+    public static void dump(Minecraft client, Screen screen) {
         try {
-            Screen screen = client.screen;
             if (screen == null) {
                 notifyPlayer(client, "No screen open. Nothing to dump.");
                 return;
@@ -49,11 +50,21 @@ public final class ScreenDumper {
                     .resolve("dumps");
             Path file = DumpWriter.write(directory, dump.screenTitle(), dump);
             LOGGER.info("Wrote screen dump to {}", file);
+            playFeedback(client, 1.6F);
             notifyPlayer(client, "Dump saved: " + file);
         } catch (Exception error) {
             LOGGER.error("Could not write screen dump", error);
+            playFeedback(client, 0.6F);
             notifyPlayer(client, "Dump failed: " + error.getClass().getSimpleName());
         }
+    }
+
+    /**
+     * Chat is hidden while a container screen is open, so a sound is the only
+     * immediate feedback the player gets. Pitch tells success from failure.
+     */
+    private static void playFeedback(Minecraft client, float pitch) {
+        client.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, pitch));
     }
 
     private static ScreenDump capture(Minecraft client, Screen screen) {

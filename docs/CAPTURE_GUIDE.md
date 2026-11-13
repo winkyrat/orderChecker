@@ -49,11 +49,16 @@ funcione y anotá cuál fue.
 
 ## 4. Qué hace F8
 
+- Funciona **con el menú abierto** (no solo en el mundo). F8 se intercepta en
+  la pantalla actual y el menú no lo recibe.
 - Lee la pantalla actual: clase, título, tamaño, menú y slots.
 - Por slot: índice, posición, item id, cantidad, nombre, lore y componentes.
 - Escribe un JSON en:
   `%APPDATA%\.minecraft-donutscanner\config\donut-order-scanner\dumps\`
 - No incluye tu contraseña, token ni datos de la cuenta.
+- Con un contenedor abierto el chat no se dibuja, así que la confirmación
+  inmediata es un **sonido agudo** (clic). El mensaje `[DOS] Dump saved: ...`
+  queda en el chat y en `logs/latest.log`.
 
 ## 5. Qué pasarme
 
