@@ -6,9 +6,32 @@
 ## Estado actual
 
 - Fecha: 2026-11-13.
-- Fase: **Fase 1 implementada; falta prueba en el juego**.
+- Fase: **Fase 1 instalada y cargando en el juego**. Falta probar F8 y capturar.
 - Build/tests: `gradlew build` verde. 2 tests unitarios del escritor de dumps.
 - Aprobación del owner para Fase 1: **dada** (eligió modo C y aceptó el riesgo).
+
+## Instalación en la máquina del owner (2026-11-13)
+
+Perfil aislado, para no mezclar Wurst con DonutSMP:
+
+| Qué | Dónde |
+| --- | --- |
+| Perfil del launcher | `Donut Scanner 1.21.11` → versión `fabric-loader-0.20.1-1.21.11` |
+| Carpeta de juego | `%APPDATA%\.minecraft-donutscanner\` |
+| Mods | `donut-order-scanner-0.1.0.jar`, `fabric-api-0.141.6+1.21.11.jar` |
+| Dumps | `%APPDATA%\.minecraft-donutscanner\config\donut-order-scanner\dumps\` |
+| Fabric Loader | `0.20.1` (instalado con installer 1.1.2 en `.minecraft/versions`) |
+
+- Se copiaron `options.txt`, `optionsof.txt`, `servers.dat` y `servers.dat_old`
+  al game dir para no perder ajustes ni servidores.
+- `%APPDATA%\.minecraft\mods\` **no se tocó**: sigue con `fabric-api-0.140.0`
+  y `Wurst-Client-v7.51.4`. El perfil aislado no carga esa carpeta.
+- Antes de escribir `launcher_profiles.json` se guardó
+  `launcher_profiles.json.bak-donutscanner`. El launcher llegó a reescribir el
+  archivo dejando solo 2 perfiles; se restauró desde el backup y quedó con 33.
+  Si algo raro pasa con los perfiles, ese `.bak` es la referencia.
+- Log de la primera corrida: `Loading Minecraft 1.21.11 with Fabric Loader 0.20.1`,
+  `donut_order_scanner 0.1.0` entre los 49 mods, sin `ERROR` ni `WARN`.
 
 ## Hecho
 
@@ -37,13 +60,14 @@
 
 ## Próximo paso exacto
 
-1. Owner instala `build/libs/donut-order-scanner-0.1.0.jar` con Fabric 1.21.11 y
-   Fabric API `0.141.6+1.21.11`.
-2. Sigue `docs/CAPTURE_GUIDE.md`: `/orders`, búsqueda, página 2, menú vacío,
+1. En el juego (perfil `Donut Scanner 1.21.11`), abrir `Options > Controls >
+   Key Binds` y confirmar que existe la categoría **Donut Order Scanner** con
+   **Dump open screen** en F8. Si F8 choca, reasignar.
+2. Prueba rápida: abrir el inventario (E) y apretar F8. Debe aparecer un
+   `.json` en `%APPDATA%\.minecraft-donutscanner\config\donut-order-scanner\dumps\`.
+3. Seguir `docs/CAPTURE_GUIDE.md`: `/orders`, búsqueda, página 2, menú vacío,
    cantidad grande y cantidad 1.
-3. Apreta F8 en cada menú y pasa los `.json` de
-   `%APPDATA%\.minecraft\config\donut-order-scanner\dumps\`.
-4. Con los dumps: escribir fixtures, parser puro y tests (Fase 2).
+4. Pasar los `.json` sin editar. Con eso: fixtures, parser puro y tests (Fase 2).
 5. Si el cliente no entra con 1.21.11: recompilar para 26.3 (Fabric API
    `0.166.2+26.3`, Java 25, mappings de Mojang). El código de dump es portable.
 

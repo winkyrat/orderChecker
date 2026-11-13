@@ -13,8 +13,16 @@ Ruta típica en Windows: `%APPDATA%\.minecraft\mods\`.
 
 ## 2. Instalación
 
-1. Copiá el jar a `mods/`.
-2. Abrí el juego con el perfil Fabric 1.21.11.
+Ya está instalado en un perfil aislado:
+
+- Perfil del launcher: **Donut Scanner 1.21.11** (`fabric-loader-0.20.1-1.21.11`).
+- Carpeta de juego: `%APPDATA%\.minecraft-donutscanner\`.
+- Mods en `%APPDATA%\.minecraft-donutscanner\mods\`.
+
+Si hay que reinstalar a mano:
+
+1. Copiá el jar a `%APPDATA%\.minecraft-donutscanner\mods\`.
+2. Abrí el juego con el perfil **Donut Scanner 1.21.11**.
 3. Verificá en **Options > Controls > Key Binds** que exista la categoría
    **Donut Order Scanner** y la tecla **Dump open screen** (F8 por defecto).
    Si F8 choca con otro mod, cambiala.
@@ -44,7 +52,7 @@ funcione y anotá cuál fue.
 - Lee la pantalla actual: clase, título, tamaño, menú y slots.
 - Por slot: índice, posición, item id, cantidad, nombre, lore y componentes.
 - Escribe un JSON en:
-  `%APPDATA%\.minecraft\config\donut-order-scanner\dumps\`
+  `%APPDATA%\.minecraft-donutscanner\config\donut-order-scanner\dumps\`
 - No incluye tu contraseña, token ni datos de la cuenta.
 
 ## 5. Qué pasarme
