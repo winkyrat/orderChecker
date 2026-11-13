@@ -41,9 +41,14 @@ escaneo: el owner lo prohibió y además aumenta el riesgo reputacional y de ban
 | 3. Guiada | Resalta el próximo paso; el humano cliquea | Medio | Sigue siendo un mod de cliente; no viola la prohibición de macros. |
 | 3. Autónoma | El mod navega y clickea | **Alto** | Es un macro/script de automatización, prohibido por las reglas. |
 
-Recomendación: no implementar la Fase 3 autónoma sin aprobación explícita del
-owner y, preferentemente, sin una consulta previa al staff. La ganancia de
-cobertura no justifica el riesgo de pérdida de cuenta.
+Recomendación original: no implementar la Fase 3 autónoma sin aprobación
+explícita del owner y, preferentemente, sin consulta previa al staff.
+
+**Excepción registrada (2026-11-13):** el owner eligió el modo autónomo y aceptó
+el riesgo de ban. Se implementará con variación de ritmo, pausas y topes. No se
+hará spoof de brand, ocultamiento del mod, paquetes inventados ni movimiento
+sintético. La probabilidad de sanción sigue siendo real y no se puede medir
+desde este proyecto.
 
 ### 1.4 Vectores de detección a asumir
 

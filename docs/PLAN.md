@@ -186,10 +186,17 @@ DoD: tests verdes con fixtures reales; export cargado por
 
 **Advertencia de reglas.** Las reglas oficiales de DonutSMP prohíben "macros,
 scripts, auto-clickers, mouse tweaks y scrollers". Un recorrido autónomo del
-menú entra en esa categoría aunque no compre ni venda. Por eso la Fase 3 no se
-implementa como robot de clics sin una decisión explícita del owner.
+menú entra en esa categoría aunque no compre ni venda.
 
-Diseño propuesto y seguro: **modo guiado**.
+**Decisión del owner (2026-11-13):** se implementa el modo autónomo (opción C)
+bajo su responsabilidad, aceptando el riesgo de ban. El owner pidió hacerlo "lo
+más natural y humano posible". Límite del proyecto: se agrega variación real de
+ritmo, pausas y topes; **no** se falsifica el brand, **no** se oculta el mod,
+**no** se inventan paquetes y **no** se simulan movimientos o rotación. Un
+intervalo fijo de 3 s no es humano; se usa una distribución con jitter y colas
+largas.
+
+Diseño de referencia solo si se optara por el modo conservador: **modo guiado**.
 
 - El mod elige el próximo ítem y resalta el slot de búsqueda/paginación.
 - El jugador hace cada clic.
