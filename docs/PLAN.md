@@ -164,7 +164,7 @@ Mod mínimo, solo lectura, sin interacción automática:
 - Tecla de debug (sin comando de servidor) que vuelca la pantalla actual.
 - Dump: clase de pantalla, título (texto y JSON), tamaño, y por slot: índice,
   item id, count, nombre, lore completo (texto plano + JSON), NBT si existe.
-- Archivo por captura en `config/donut-order-scanner/dumps/`.
+- Archivo por captura en `config/donut_order_scanner/dumps/`.
 - Sin clics, sin teclas simuladas, sin paquetes propios.
 
 DoD: build reproducible, instrucciones de captura, dumps de los casos pedidos.

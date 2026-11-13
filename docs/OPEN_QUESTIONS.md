@@ -33,7 +33,7 @@ del servidor? Si es un subconjunto, pasame la lista.
 ### B4. Dónde correr el cliente
 
 ¿Minecraft vanilla/Fabric en Windows con el `.minecraft` habitual?
-¿Qué ruta usa tu launcher? El mod escribirá en `config/donut-order-scanner/`.
+¿Qué ruta usa tu launcher? El mod escribirá en `config/donut_order_scanner/`.
 
 ## Antes de la Fase 2
 

@@ -22,7 +22,7 @@ $env:JAVA_HOME="C:\Users\winky\OneDrive\Documentos\Default Project\donut-order-s
 .\gradlew.bat build
 ```
 
-Salida: `build/libs/donut-order-scanner-0.1.0.jar`.
+Salida: `build/libs/donut-order-scanner-0.2.0.jar`.
 
 Tests: `.\gradlew.bat test`.
 

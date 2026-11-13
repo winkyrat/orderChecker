@@ -4,6 +4,10 @@ import dev.donutprofit.orderscanner.dump.ComponentDump;
 import dev.donutprofit.orderscanner.dump.DumpWriter;
 import dev.donutprofit.orderscanner.dump.ScreenDump;
 import dev.donutprofit.orderscanner.dump.SlotDump;
+import dev.donutprofit.orderscanner.parse.OrderExport;
+import dev.donutprofit.orderscanner.parse.OrderExportStore;
+import dev.donutprofit.orderscanner.parse.OrderMenu;
+import dev.donutprofit.orderscanner.parse.OrderMenuParser;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
@@ -50,8 +54,21 @@ public final class ScreenDumper {
                     .resolve("dumps");
             Path file = DumpWriter.write(directory, dump.screenTitle(), dump);
             LOGGER.info("Wrote screen dump to {}", file);
+
+            OrderMenu menu = OrderMenuParser.parse(dump);
+            String extra = "";
+            if (!menu.orders().isEmpty()) {
+                OrderExport export = OrderExport.of(
+                        menu, dump.modVersion(), dump.capturedAt(), dump.screenTitle());
+                Path capture = OrderExportStore.writeCapture(directory, export);
+                Path snapshot = OrderExportStore.mergeIntoSnapshot(directory, export);
+                LOGGER.info("Exported {} orders to {} (snapshot {})",
+                        menu.orders().size(), capture, snapshot);
+                extra = " | " + menu.orders().size() + " orders -> " + snapshot.getFileName();
+            }
+
             playFeedback(client, 1.6F);
-            notifyPlayer(client, "Dump saved: " + file);
+            notifyPlayer(client, "Dump saved: " + file + extra);
         } catch (Exception error) {
             LOGGER.error("Could not write screen dump", error);
             playFeedback(client, 0.6F);

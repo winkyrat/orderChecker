@@ -7,7 +7,7 @@
 
 - Minecraft Java **1.21.11** con **Fabric Loader 0.20.1** o compatible.
 - **Fabric API** `0.141.6+1.21.11` en la carpeta `mods`.
-- El jar del mod: `build/libs/donut-order-scanner-0.1.0.jar`.
+- El jar del mod: `build/libs/donut-order-scanner-0.2.0.jar`.
 
 Ruta típica en Windows: `%APPDATA%\.minecraft\mods\`.
 
@@ -30,22 +30,19 @@ Si hay que reinstalar a mano:
 
 ## 3. Capturas que necesito
 
-Hacé cada captura con el menú abierto y apretá **F8**. El chat debe mostrar
-`[DOS] Dump saved: ...`. Si falla, mostrame el mensaje y el archivo
-`logs/latest.log`.
+Hacé cada captura con el menú abierto y apretá **F8**. Suena un clic agudo. Si
+falla, mostrame el mensaje del chat y `logs/latest.log`.
+
+El comando confirmado es **`/order <ítem>`** (singular).
 
 | # | Qué abrir | Qué quiero ver |
 | --- | --- | --- |
-| 1 | `/orders` | Pantalla principal, sin filtro. |
-| 2 | `/orders diamond` (o `/order diamond`) | Resultado de búsqueda de un ítem. |
-| 3 | Misma búsqueda, página 2 | Cómo se pagina y qué slot es "siguiente". |
-| 4 | `/orders iron_ingot` | Otro ítem, precio y cantidad distintos. |
-| 5 | Búsqueda sin resultados (`/orders zzzzz`) | Caso borde: menú vacío. |
-| 6 | Una order con cantidad grande | Formato de cantidades > 1.000. |
-| 7 | Una order con cantidad 1, si existe | Caso borde: una sola unidad. |
+| 1 | `/order diamond` | Ítem que no sea vidrio: confirma que el slot muestra el ítem real. |
+| 2 | `/order diamond`, página 2 | Paginación y el botón "Next page". |
+| 3 | `/order zzzzz` | Caso borde: búsqueda sin resultados. |
+| 4 | `/order spawner` o `/order shulker_shell` | Ítem con nombre custom o precio alto, si existe. |
 
-Si el comando correcto es `/order <item>` y no `/orders <item>`, usá el que
-funcione y anotá cuál fue.
+Ya tengo `/order glass` página 1 (45 órdenes). No hace falta repetirla.
 
 ## 4. Qué hace F8
 
@@ -53,8 +50,11 @@ funcione y anotá cuál fue.
   la pantalla actual y el menú no lo recibe.
 - Lee la pantalla actual: clase, título, tamaño, menú y slots.
 - Por slot: índice, posición, item id, cantidad, nombre, lore y componentes.
-- Escribe un JSON en:
-  `%APPDATA%\.minecraft-donutscanner\config\donut-order-scanner\dumps\`
+- Escribe tres archivos en
+  `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\dumps\`:
+  - `orders_page_1-<ms>.json`: dump crudo, evidencia.
+  - `orders-p1-<ms>.json`: export de esa captura.
+  - `orders.json`: snapshot acumulado con el mejor precio por ítem.
 - No incluye tu contraseña, token ni datos de la cuenta.
 - Con un contenedor abierto el chat no se dibuja, así que la confirmación
   inmediata es un **sonido agudo** (clic). El mensaje `[DOS] Dump saved: ...`
@@ -62,10 +62,9 @@ funcione y anotá cuál fue.
 
 ## 5. Qué pasarme
 
-1. Todos los `.json` de esa carpeta, sin editar.
-2. Una captura de pantalla de cada menú (opcional pero útil).
+1. `orders.json` (el que se le pasa a DonutProfit) y los `orders-p*.json`.
+2. Los dumps crudos `orders_page_*.json`, sin editar, para los fixtures.
 3. El resultado de `logs/latest.log` si algo falla.
-4. Anotá si el precio que muestra el menú es por ítem o total, si lo sabés.
 
 ## 6. Seguridad
 

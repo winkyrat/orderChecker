@@ -6,8 +6,10 @@
 ## Estado actual
 
 - Fecha: 2026-11-13.
-- Fase: **Fase 1 instalada y cargando en el juego**. Falta probar F8 y capturar.
-- Build/tests: `gradlew build` verde. 2 tests unitarios del escritor de dumps.
+- Fase: **Fase 2 implementada**. F8 dumpea la pantalla y, si es el menú de
+  órdenes, además escribe el export compatible con DonutProfit.
+- Build/tests: `gradlew build` verde. **16 tests** (dumps, números, parser,
+  snapshot). Fixture real: `src/test/resources/fixtures/orders-glass-page1.json`.
 - Aprobación del owner para Fase 1: **dada** (eligió modo C y aceptó el riesgo).
 
 ## Instalación en la máquina del owner (2026-11-13)
@@ -18,8 +20,8 @@ Perfil aislado, para no mezclar Wurst con DonutSMP:
 | --- | --- |
 | Perfil del launcher | `Donut Scanner 1.21.11` → versión `fabric-loader-0.20.1-1.21.11` |
 | Carpeta de juego | `%APPDATA%\.minecraft-donutscanner\` |
-| Mods | `donut-order-scanner-0.1.0.jar`, `fabric-api-0.141.6+1.21.11.jar` |
-| Dumps | `%APPDATA%\.minecraft-donutscanner\config\donut-order-scanner\dumps\` |
+| Mods | `donut-order-scanner-0.2.0.jar`, `fabric-api-0.141.6+1.21.11.jar` |
+| Dumps y exports | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\dumps\` |
 | Fabric Loader | `0.20.1` (instalado con installer 1.1.2 en `.minecraft/versions`) |
 
 - Se copiaron `options.txt`, `optionsof.txt`, `servers.dat` y `servers.dat_old`
@@ -49,8 +51,42 @@ Perfil aislado, para no mezclar Wurst con DonutSMP:
   `ScreenKeyboardEvents.allowKeyPress` por pantalla y consume la tecla. Sonido
   de confirmación porque el chat no se ve con un contenedor abierto.
 - `docs/CAPTURE_GUIDE.md` con los pasos exactos de captura.
+- **Fase 2 (0.2.0):** parser puro + export. Ver "Datos reales observados".
 - Toolchain local: JDK 25 en `.tools/` (Loom 1.19.4 lo exige para compilar;
   el mod compila con `--release 21` y corre en Java 21).
+
+## Datos reales observados (`/order glass`, página 1, 2026-11-13)
+
+Evidencia en `src/test/resources/fixtures/orders-glass-page1.json`.
+
+- Menú de 90 slots: **0–44 órdenes**, 45–46 vacíos, 47 filtro (hopper),
+  48 Shard Shop, 49 Orders, 50 Search, 51 Your Orders, 53 Next page,
+  54–89 inventario del jugador.
+- Título: `Orders (Page 1)`. No incluye el ítem buscado.
+- El slot **sí muestra el ítem real** (`minecraft:glass`, `tinted_glass`,
+  `black_stained_glass`…), no un placeholder. `count` del stack es siempre 1:
+  no sirve como cantidad.
+- Lore de una orden:
+  - `$ 4K each` → precio por unidad (el comprador paga).
+  - `872/1k Delivered` → **entregado / necesario** (confirmado por el owner).
+  - `Click to deliver items` → la orden es un pedido de entrega ⇒ `side: "buy"`.
+- El inventario del jugador usa `~$ 275` (valor estimado total). El prefijo `~`
+  se usa para excluirlo; no es precio unitario.
+- Formato numérico: `4K`, `1.9K`, `6.2k`, `38.1k`, `128k`, `1m`.
+- `quantityRemaining = necesario − entregado`. Si es ≤ 0 la orden ya está
+  completa y se descarta con un warning.
+
+### Archivos que escribe F8 en el menú de órdenes
+
+| Archivo | Contenido |
+| --- | --- |
+| Archivo | Contenido |
+| --- | --- |
+| `orders_page_1-<ms>.json` | Dump crudo (evidencia, todos los slots). |
+| `orders-p1-<ms>.json` | Export de esa captura, formato DonutProfit. |
+| `orders.json` | Snapshot acumulado: mejor precio por ítem, cada fila con su `observedAt`. |
+
+`orders.json` es el archivo que se le pasa a DonutProfit.
 
 ## Decisiones tomadas
 
@@ -65,16 +101,17 @@ Perfil aislado, para no mezclar Wurst con DonutSMP:
 
 ## Próximo paso exacto
 
-1. En el juego (perfil `Donut Scanner 1.21.11`), abrir `Options > Controls >
-   Key Binds` y confirmar que existe la categoría **Donut Order Scanner** con
-   **Dump open screen** en F8. Si F8 choca, reasignar.
-2. Prueba rápida: abrir el inventario (E) y apretar F8. Debe aparecer un
-   `.json` en `%APPDATA%\.minecraft-donutscanner\config\donut-order-scanner\dumps\`.
-3. Seguir `docs/CAPTURE_GUIDE.md`: `/orders`, búsqueda, página 2, menú vacío,
-   cantidad grande y cantidad 1.
-4. Pasar los `.json` sin editar. Con eso: fixtures, parser puro y tests (Fase 2).
-5. Si el cliente no entra con 1.21.11: recompilar para 26.3 (Fabric API
-   `0.166.2+26.3`, Java 25, mappings de Mojang). El código de dump es portable.
+1. Reiniciar el juego (el jar pasó a `0.2.0`; el que estaba cargado era `0.1.1`).
+2. Capturar en DonutSMP, con F8 en cada menú:
+   - `/order diamond` (ítem no-vidrio: confirma que el `itemId` es el real),
+   - `/order diamond` página 2 (confirma paginación y el slot "Next page"),
+   - `/order zzzzz` o búsqueda sin resultados (caso borde).
+3. Verificar `orders.json` y pasarlo a DonutProfit.
+4. Con más dumps: ampliar fixtures y cubrir ítems con nombre custom
+   (spawners, libros, pociones) por si el icono deja de ser el ítem real.
+5. Fase 3 (escaneo autónomo, modo C): diseño con jitter, pausas y topes.
+6. Si el cliente no entra con 1.21.11: recompilar para 26.3 (Fabric API
+   `0.166.2+26.3`, Java 25, mappings de Mojang). El código es portable.
 
 ## Bloqueos
 
