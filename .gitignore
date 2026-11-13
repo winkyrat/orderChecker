@@ -1,0 +1,29 @@
+# Gradle / Java
+.gradle/
+build/
+out/
+*.class
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+
+# Minecraft run directory
+run/
+logs/
+crash-reports/
+config/
+saves/
+mods/
+
+# Local data and secrets
+dumps/
+*.ndjson
+.env
+.env.*
+!.env.example
+
+# Editors / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
