@@ -97,9 +97,10 @@ cerca de la **página 40-50**: unos 45 clics para un solo ítem, contra 4 en
 
 Conclusiones:
 
-- La escalera completa de precios para nombres genéricos **no es alcanzable** a
-  un costo razonable. Ni siquiera el gear de diamante entra completo: 30 páginas
-  (1350 filas) y seguía en gear.
+- La escalera completa de precios para nombres genéricos **no es alcanzable con
+  pocos clics**: son decenas de páginas. Ni siquiera el gear de diamante entra
+  completo en 30 páginas (1350 filas) y seguía en gear. El owner aceptó ese
+  costo para tener el precio real.
 - `Recently Listed` llega al ítem barato enseguida, pero devuelve una **muestra
   de órdenes recientes**, no el libro completo. Para `diamond` fueron 3 filas.
 - `Most Per Item` sí da el **libro completo** de los ítems cuyo nombre no se
@@ -133,14 +134,16 @@ Perfil aislado, para no mezclar Wurst con DonutSMP:
 | --- | --- |
 | Perfil del launcher | `Donut Scanner 1.21.11` → versión `fabric-loader-0.20.1-1.21.11` |
 | Carpeta de juego | `%APPDATA%\.minecraft-donutscanner\` |
-| Mods | `donut-order-scanner-0.5.0.jar`, `fabric-api-0.141.6+1.21.11.jar` |
+| Mods | `donut-order-scanner-0.6.0.jar`, `fabric-api-0.141.6+1.21.11.jar` |
 | Dumps y exports | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\dumps\` |
 | Config del escaneo | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\scan.json` |
+| Cursor de ítems | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\scan-cursor.txt` |
 | Fabric Loader | `0.20.1` (instalado con installer 1.1.2 en `.minecraft/versions`) |
 
-> `0.5.0` instalado el 2026-11-16 (hash verificado contra `build/libs/`).
-> Incluye los arreglos de `0.4.2`, que nunca llegó a instalarse. Nunca dejar dos
-> jars del mod en `mods/`: Fabric falla por mod id duplicado.
+> `0.6.0` instalado el 2026-11-16 (hash `79C70ECC…805C` verificado contra
+> `build/libs/`). `scan.json` vivo actualizado a `maxPages: 200` y
+> `maxPagesPerSession: 400`. Nunca dejar dos jars del mod en `mods/`: Fabric
+> falla por mod id duplicado.
 
 ### Incidente 0.4.0 (2026-11-16)
 
