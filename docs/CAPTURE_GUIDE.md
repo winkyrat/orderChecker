@@ -7,7 +7,7 @@
 
 - Minecraft Java **1.21.11** con **Fabric Loader 0.20.1** o compatible.
 - **Fabric API** `0.141.6+1.21.11` en la carpeta `mods`.
-- El jar del mod: `build/libs/donut-order-scanner-0.2.0.jar`.
+- El jar del mod: `build/libs/donut-order-scanner-0.3.0.jar`.
 
 Ruta típica en Windows: `%APPDATA%\.minecraft\mods\`.
 
@@ -37,12 +37,13 @@ El comando confirmado es **`/order <ítem>`** (singular).
 
 | # | Qué abrir | Qué quiero ver |
 | --- | --- | --- |
-| 1 | `/order diamond` | Ítem que no sea vidrio: confirma que el slot muestra el ítem real. |
-| 2 | `/order diamond`, página 2 | Paginación y el botón "Next page". |
-| 3 | `/order zzzzz` | Caso borde: búsqueda sin resultados. |
-| 4 | `/order spawner` o `/order shulker_shell` | Ítem con nombre custom o precio alto, si existe. |
+| 1 | `/order diamond_block`, página 2 | Paginación: qué slot es `Next page` y si la página 2 sigue ordenada por precio. |
+| 2 | `/order zzzzz` | Caso borde: búsqueda sin resultados. |
+| 3 | `/order diamond` | Si la búsqueda es exacta o trae variantes (`diamond` + `diamond_block`). |
+| 4 | `/order spawner` o un ítem con nombre custom | Que el `itemId` siga siendo el real aunque el nombre sea raro. |
 
-Ya tengo `/order glass` página 1 (45 órdenes). No hace falta repetirla.
+Ya tengo tres capturas reales (glass, diamond_block, obsidian). No hace falta
+repetirlas: están en `src/test/resources/fixtures/`.
 
 ## 4. Qué hace F8
 
@@ -54,7 +55,7 @@ Ya tengo `/order glass` página 1 (45 órdenes). No hace falta repetirla.
   `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\dumps\`:
   - `orders_page_1-<ms>.json`: dump crudo, evidencia.
   - `orders-p1-<ms>.json`: export de esa captura.
-  - `orders.json`: snapshot acumulado con el mejor precio por ítem.
+  - `orders.json`: snapshot con todas las filas; una captura reemplaza solo su página.
 - No incluye tu contraseña, token ni datos de la cuenta.
 - Con un contenedor abierto el chat no se dibuja, así que la confirmación
   inmediata es un **sonido agudo** (clic). El mensaje `[DOS] Dump saved: ...`

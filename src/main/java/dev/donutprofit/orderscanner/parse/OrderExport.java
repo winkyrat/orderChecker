@@ -10,8 +10,8 @@ import java.util.List;
  * Export document consumed by DonutProfit's {@code parseOrdersJson}.
  *
  * <p>Top-level fields beyond {@code orders} are ignored by the loader, so they
- * are free to carry provenance. Every row keeps {@code displayName} and
- * {@code slot} for auditing; the loader strips unknown keys.
+ * are free to carry provenance. Every row keeps {@code displayName},
+ * {@code page} and {@code slot} for auditing; the loader strips unknown keys.
  */
 public record OrderExport(
         int schemaVersion,
@@ -35,6 +35,10 @@ public record OrderExport(
     /**
      * One row of {@code orderRecordSchema}. {@code unitPrice} is in whole
      * currency units and {@code quantityRemaining} is positive by construction.
+     *
+     * <p>Every menu row is exported, not only the best price: DonutProfit builds
+     * a demand ladder per item, so dropping the cheaper rows would understate
+     * how much the market is actually buying.
      */
     public record Row(
             String itemId,
@@ -43,6 +47,7 @@ public record OrderExport(
             long quantityRemaining,
             String observedAt,
             String displayName,
+            int page,
             int slot,
             boolean verified) {
     }
@@ -57,6 +62,7 @@ public record OrderExport(
                     order.quantityRemaining(),
                     capturedAt,
                     order.displayName(),
+                    menu.page(),
                     order.slot(),
                     false));
         }

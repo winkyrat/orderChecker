@@ -23,10 +23,26 @@ public final class GameNumber {
     }
 
     /**
+     * Rounds half-up. Used for counts, where the displayed value is a rounded
+     * view of an integer.
+     *
      * @throws IllegalArgumentException when the text is not a compact number or
      *                                  does not fit in a {@code long}.
      */
     public static long parse(String raw) {
+        return parse(raw, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Truncates. Used for prices, because the menu prints fractions
+     * ({@code $ 511.2 each}) and DonutProfit stores whole currency units:
+     * rounding down never overstates what an order pays.
+     */
+    public static long parseFloor(String raw) {
+        return parse(raw, RoundingMode.DOWN);
+    }
+
+    private static long parse(String raw, RoundingMode rounding) {
         if (raw == null) {
             throw new IllegalArgumentException("Number is null");
         }
@@ -47,7 +63,7 @@ public final class GameNumber {
         }
 
         try {
-            return value.setScale(0, RoundingMode.HALF_UP).longValueExact();
+            return value.setScale(0, rounding).longValueExact();
         } catch (ArithmeticException error) {
             throw new IllegalArgumentException("Number out of range: '" + raw + "'", error);
         }

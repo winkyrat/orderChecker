@@ -28,6 +28,13 @@ class GameNumberTest {
     }
 
     @Test
+    void floorsPricesThatTheMenuPrintsWithDecimals() {
+        assertEquals(511L, GameNumber.parseFloor("511.2"));
+        assertEquals(702L, GameNumber.parseFloor("702.8"));
+        assertEquals(98100L, GameNumber.parseFloor("98.1K"), "suffixes are exact");
+    }
+
+    @Test
     void trimsSurroundingWhitespace() {
         assertEquals(4000L, GameNumber.parse(" 4K "));
     }

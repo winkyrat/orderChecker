@@ -16,74 +16,83 @@ class OrderExportStoreTest {
     @TempDir
     Path tempDir;
 
-    private static OrderExport export(String observedAt, OrderExport.Row... rows) {
+    private static OrderExport export(int page, String observedAt, OrderExport.Row... rows) {
         return new OrderExport(
-                OrderExport.SCHEMA_VERSION, "0.2.0", OrderExport.SOURCE, observedAt, observedAt,
-                "Orders (Page 1)", 1, List.of(rows), List.of());
+                OrderExport.SCHEMA_VERSION, "0.3.0", OrderExport.SOURCE, observedAt, observedAt,
+                "Orders (Page " + page + ")", page, List.of(rows), List.of());
     }
 
-    private static OrderExport.Row row(String itemId, long price, long remaining, String observedAt) {
-        return new OrderExport.Row(itemId, "buy", price, remaining, observedAt, itemId, 0, false);
-    }
-
-    @Test
-    void keepsTheBestPricePerItemAcrossCaptures() throws Exception {
-        Path snapshot = OrderExportStore.mergeIntoSnapshot(tempDir, export(
-                "2026-11-13T00:00:00Z",
-                row("minecraft:glass", 1000, 500, "2026-11-13T00:00:00Z"),
-                row("minecraft:diamond", 2000, 10, "2026-11-13T00:00:00Z")));
-
-        assertTrue(Files.exists(snapshot));
-        assertEquals(OrderExportStore.SNAPSHOT_FILE, snapshot.getFileName().toString());
-
-        OrderExportStore.mergeIntoSnapshot(tempDir, export(
-                "2026-11-13T01:00:00Z",
-                row("minecraft:glass", 1500, 5, "2026-11-13T01:00:00Z"),
-                row("minecraft:iron_ingot", 500, 900, "2026-11-13T01:00:00Z")));
-
-        OrderExport merged = OrderExportStore.read(snapshot);
-        assertNotNull(merged);
-        assertEquals(3, merged.orders().size());
-
-        OrderExport.Row glass = find(merged, "minecraft:glass");
-        assertEquals(1500L, glass.unitPrice(), "higher price wins");
-        assertEquals(5L, glass.quantityRemaining());
-        assertEquals("2026-11-13T01:00:00Z", glass.observedAt(), "row keeps its own capture time");
-
-        assertEquals(2000L, find(merged, "minecraft:diamond").unitPrice());
-        assertEquals(500L, find(merged, "minecraft:iron_ingot").unitPrice());
+    private static OrderExport.Row row(String itemId, int page, int slot, long price, long remaining,
+                                       String observedAt) {
+        return new OrderExport.Row(itemId, "buy", price, remaining, observedAt, itemId, page, slot, false);
     }
 
     @Test
-    void lowerPriceDoesNotOverwriteTheSnapshot() throws Exception {
-        OrderExportStore.mergeIntoSnapshot(tempDir, export(
-                "2026-11-13T00:00:00Z",
-                row("minecraft:glass", 1500, 5, "2026-11-13T00:00:00Z")));
-
-        Path snapshot = OrderExportStore.mergeIntoSnapshot(tempDir, export(
-                "2026-11-13T01:00:00Z",
-                row("minecraft:glass", 1000, 500, "2026-11-13T01:00:00Z")));
+    void keepsEveryRowOfTheSameItemInsteadOfOnlyTheBestPrice() throws Exception {
+        Path snapshot = OrderExportStore.mergeIntoSnapshot(tempDir, export(1, "2026-11-13T00:00:00Z",
+                row("minecraft:diamond_block", 1, 0, 98100, 10, "2026-11-13T00:00:00Z"),
+                row("minecraft:diamond_block", 1, 1, 98000, 64, "2026-11-13T00:00:00Z"),
+                row("minecraft:diamond_block", 1, 2, 80000, 128, "2026-11-13T00:00:00Z")));
 
         OrderExport merged = OrderExportStore.read(snapshot);
         assertNotNull(merged);
-        assertEquals(1500L, find(merged, "minecraft:glass").unitPrice());
+        assertEquals(3, merged.orders().size(), "a demand ladder is many rows for one item");
+    }
+
+    @Test
+    void recapturingAPageReplacesThatPageOnly() throws Exception {
+        OrderExportStore.mergeIntoSnapshot(tempDir, export(1, "2026-11-13T00:00:00Z",
+                row("minecraft:diamond_block", 1, 0, 98100, 10, "2026-11-13T00:00:00Z"),
+                row("minecraft:diamond_block", 1, 1, 98000, 64, "2026-11-13T00:00:00Z")));
+        OrderExportStore.mergeIntoSnapshot(tempDir, export(2, "2026-11-13T00:05:00Z",
+                row("minecraft:diamond_block", 2, 0, 40000, 512, "2026-11-13T00:05:00Z")));
+
+        Path snapshot = OrderExportStore.mergeIntoSnapshot(tempDir, export(1, "2026-11-13T00:10:00Z",
+                row("minecraft:diamond_block", 1, 0, 99500, 3, "2026-11-13T00:10:00Z")));
+
+        OrderExport merged = OrderExportStore.read(snapshot);
+        assertNotNull(merged);
+        assertEquals(2, merged.orders().size(), "page 1 replaced, page 2 kept");
+
+        OrderExport.Row pageOne = find(merged, "minecraft:diamond_block", 1);
+        assertEquals(99500L, pageOne.unitPrice());
+        assertEquals("2026-11-13T00:10:00Z", pageOne.observedAt());
+
+        OrderExport.Row pageTwo = find(merged, "minecraft:diamond_block", 2);
+        assertEquals(40000L, pageTwo.unitPrice());
+        assertEquals("2026-11-13T00:05:00Z", pageTwo.observedAt(), "other pages keep their timestamp");
+    }
+
+    @Test
+    void keepsItemsThatTheCaptureDidNotMention() throws Exception {
+        OrderExportStore.mergeIntoSnapshot(tempDir, export(1, "2026-11-13T00:00:00Z",
+                row("minecraft:glass", 1, 0, 4000, 128, "2026-11-13T00:00:00Z"),
+                row("minecraft:tinted_glass", 1, 1, 1700, 100, "2026-11-13T00:00:00Z")));
+
+        Path snapshot = OrderExportStore.mergeIntoSnapshot(tempDir, export(1, "2026-11-13T01:00:00Z",
+                row("minecraft:glass", 1, 0, 4200, 100, "2026-11-13T01:00:00Z")));
+
+        OrderExport merged = OrderExportStore.read(snapshot);
+        assertNotNull(merged);
+        assertEquals(2, merged.orders().size());
+        assertEquals(4200L, find(merged, "minecraft:glass", 1).unitPrice());
+        assertEquals(1700L, find(merged, "minecraft:tinted_glass", 1).unitPrice());
     }
 
     @Test
     void writesOneFilePerCapture() throws Exception {
-        Path capture = OrderExportStore.writeCapture(tempDir, export(
-                "2026-11-13T00:00:00Z",
-                row("minecraft:glass", 1000, 500, "2026-11-13T00:00:00Z")));
+        Path capture = OrderExportStore.writeCapture(tempDir, export(2, "2026-11-13T00:00:00Z",
+                row("minecraft:glass", 2, 0, 1000, 500, "2026-11-13T00:00:00Z")));
 
         assertTrue(Files.exists(capture));
-        assertTrue(capture.getFileName().toString().startsWith("orders-p1-"));
+        assertTrue(capture.getFileName().toString().startsWith("orders-p2-"));
         assertTrue(capture.getFileName().toString().endsWith(".json"));
     }
 
-    private static OrderExport.Row find(OrderExport export, String itemId) {
+    private static OrderExport.Row find(OrderExport export, String itemId, int page) {
         return export.orders().stream()
-                .filter(row -> row.itemId().equals(itemId))
+                .filter(row -> row.itemId().equals(itemId) && row.page() == page)
                 .findFirst()
-                .orElseThrow(() -> new AssertionError("missing row for " + itemId));
+                .orElseThrow(() -> new AssertionError("missing row for " + itemId + " page " + page));
     }
 }

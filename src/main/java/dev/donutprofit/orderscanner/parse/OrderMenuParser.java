@@ -85,7 +85,7 @@ public final class OrderMenuParser {
             long deliveredCount;
             long requiredCount;
             try {
-                unitPrice = GameNumber.parse(priceText);
+                unitPrice = GameNumber.parseFloor(priceText);
                 deliveredCount = GameNumber.parse(delivered.group(1));
                 requiredCount = GameNumber.parse(delivered.group(2));
             } catch (IllegalArgumentException error) {
