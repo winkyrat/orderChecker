@@ -246,12 +246,16 @@ npx tsx scripts/load-orders.ts "<ruta>\orders.json"
 ## Próximo paso exacto
 
 1. **Instalar 0.5.0** (cerrar el juego, borrar `0.4.1`, copiar el `0.5.0`).
-2. **Medir la profundidad de `diamond`**: dejar en `scan.json` un solo ítem
-   (`"items": ["minecraft:diamond"]`) y correr F9. El log dice cuántas páginas
-   hizo falta:
+2. **Medir la profundidad de `diamond`** (sonda preparada el 2026-11-16):
+   `scan.json` quedó con un solo ítem, `maxPages: 30`, `maxItemsPerSession: 1`,
+   y la lista de 60 respaldada en `scan.json.bak-catalogue`. Correr F9 una vez y
+   leer el log:
    - `Scan: /order diamond done -> N pages, minecraft:diamond found`
-   - o `never returned minecraft:diamond within 12 pages`.
-   Con ese número se decide si 12 alcanza o hay que subir `maxPages`.
+   - o `never returned minecraft:diamond within 30 pages`.
+   Con ese número se decide: si N ≤ 8, `maxPages` queda en 12 y listo; si N es
+   15-30, paginar profundo solo para los 2-3 ítems que el owner comercia de
+   verdad; si no aparece en 30, la paginación no sirve para nombres genéricos y
+   hay que cambiar de estrategia.
 3. Repetir con `emerald` y `coal` (los otros dos nombres genéricos del catálogo).
    Anotar páginas por ítem para calibrar `maxPages` y `maxPagesPerSession`.
 4. Volver a la lista de 60 y ajustar `scan.json` (ritmo, topes, lista de ítems).
