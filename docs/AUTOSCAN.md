@@ -27,12 +27,20 @@ o nombre contenga "diamond", ordenado de mayor a menor precio: leggings, boots,
 spear, sword, helmet, axe, chestplate. El diamante crudo (~$1-3K) queda al final
 de la lista, después de ~134 filas de gear de 1M–5.8M.
 
+La búsqueda también matchea el **lore y los encantamientos**, no solo el nombre.
+Medido: `/order feather` devolvió `netherite_boots`, `diamond_boots`,
+`chainmail_boots`, `leather_boots` (todas con *Feather Falling*) y
+`enchanted_book`, con `feather` recién en la página 7. Eso explica por qué las
+materias primas baratas quedan profundo: compiten con todo lo que las menciona en
+su lore.
+
 Consecuencia: el ítem barato aparece **decenas de páginas** después. Medido con
 `diamond` en `Most Per Item`: p1 `5.3M–2M`, p10 `500K`, p20 `200K`,
-p30 `56K–50.5K`; el diamante crudo (`$11.2K`) apareció en la **página 43**.
-Por eso el escaneo **pagina hasta encontrarlo**, sin un tope práctico, y corta
-en esa misma página: al estar ordenada por precio, ya contiene sus órdenes más
-caras. `maxPages` (200) es solo una guarda contra un bucle.
+p30 `56K–50.5K`; el diamante crudo (`$11.2K`) apareció en la **página 39** de la
+última corrida (43 en una captura anterior). Por eso el escaneo **pagina hasta
+encontrarlo**, sin un tope práctico, y corta en esa misma página: al estar
+ordenada por precio, ya contiene sus órdenes más caras. `maxPages` (200) es solo
+una guarda contra un bucle.
 
 No conviene seguir leyendo la banda completa: en esa corrida la banda de
 `diamond` siguió 32 páginas más, hasta órdenes de $1 (incluida una de 1.000
@@ -47,6 +55,14 @@ precios que usa DonutProfit necesita el orden por precio, no por fecha.
 Solo cuatro nombres del catálogo son genéricos y caros de recorrer:
 `iron`, `emerald`, `diamond` y `redstone`. El resto tiene nombre propio y
 aparece en 1-3 páginas.
+
+**Menú vacío al abrir (0.10.1).** El contenedor se dibuja antes de que el
+servidor mande los slots, así que de vez en cuando la página 1 se lee vacía. En
+la corrida del 2026-11-16 pasó una sola vez (`netherite_boots`, que sí tenía 146
+órdenes reales vistas como filas incidentales). Ahora, si la página 1 llega sin
+filas, el escaneo espera 200 ms y la vuelve a leer una vez antes de creer que la
+búsqueda no tiene resultados. Un resultado genuinamente vacío solo cuesta ese
+único reintento.
 
 El log y la barra de acción dicen qué pasó:
 

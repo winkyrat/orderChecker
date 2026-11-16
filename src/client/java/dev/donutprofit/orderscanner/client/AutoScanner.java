@@ -46,6 +46,8 @@ public final class AutoScanner {
     private static final Logger LOGGER = LoggerFactory.getLogger(OrderScannerClient.MOD_ID);
     private static final int MAX_CONSECUTIVE_FAILURES = 3;
     private static final long CLOSE_SETTLE_MILLIS = 150L;
+    /** A menu that opens with nothing in it is usually still being filled. */
+    private static final long EMPTY_RETRY_MILLIS = 200L;
 
     private final ScanSchedule schedule = new ScanSchedule(new Random());
 
@@ -63,6 +65,7 @@ public final class AutoScanner {
     private int pagesThisItem;
     private boolean itemInProgress;
     private boolean itemTruncated;
+    private boolean emptyRetried;
     private String truncationReason = "";
 
     public boolean isRunning() {
@@ -109,6 +112,7 @@ public final class AutoScanner {
         pagesThisItem = 0;
         itemInProgress = false;
         itemTruncated = false;
+        emptyRetried = false;
         truncationReason = "";
         phase = Phase.WAIT;
         deadline = 0L;
@@ -205,6 +209,7 @@ public final class AutoScanner {
         pagesThisItem = 0;
         itemInProgress = true;
         itemTruncated = false;
+        emptyRetried = false;
         truncationReason = "";
 
         String name = shortName(currentItem);
@@ -240,6 +245,19 @@ public final class AutoScanner {
         } catch (Exception error) {
             LOGGER.error("Scan: could not export page {} of {}", page, currentItem, error);
             fail(client, "could not write the export");
+            return;
+        }
+
+        // A menu that opens with nothing in it is usually still being filled by
+        // the server: the container is drawn before its slots arrive. Capturing
+        // it as an empty page loses the item silently, so give it one short
+        // retry before believing the list is really empty.
+        if (result.rows() == 0 && page == 1 && !emptyRetried) {
+            emptyRetried = true;
+            phase = Phase.SETTLE_PAGE;
+            deadline = now + EMPTY_RETRY_MILLIS;
+            LOGGER.info("Scan: /order {} opened empty, retrying in {} ms",
+                    shortName(currentItem), EMPTY_RETRY_MILLIS);
             return;
         }
 

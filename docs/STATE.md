@@ -7,17 +7,21 @@
 
 - Fecha: 2026-11-16.
 - Fase: **Fase 3 verificada en vivo**, con preset de throughput y filas
-  incidentales. `0.10.0` corre `1-3 s` con sesgo corto y `pageDelay` 350-900 ms,
+  incidentales. `0.10.1` corre `1-3 s` con sesgo corto y `pageDelay` 350-900 ms,
   `maxPages` 200. Corta en la primera página que contiene el ítem, **guarda toda
   la página** (las filas de otros ítems valen como dato) y siempre usa
-  `Most Per Item`.
-- Build/tests: `gradlew build` verde. **50 tests** (dumps, parser, snapshot,
-  config, ritmo, topes de ítems/páginas, cursor de ítems). Siete fixtures reales.
+  `Most Per Item`. `0.10.1` agrega un reintento cuando la página 1 abre vacía.
+- Build/tests: `gradlew build` verde. **53 tests** (dumps, parser, snapshot,
+  merge por página/búsqueda/incidental, config, ritmo, topes de ítems/páginas,
+  cursor de ítems). Fixtures reales.
 - Aprobación del owner para Fase 1: **dada** (eligió modo C y aceptó el riesgo).
-- **Problema abierto:** el buscador de órdenes matchea por subcadena y ordena
-  por precio descendente, así que el ítem barato aparece último. Medido: 42-43
-  páginas para `diamond`. Resuelto paginando profundo, con el presupuesto
-  de páginas de la sesión como único freno real.
+- **Corrida 0.10.0 (2026-11-16, 18:17:58–18:22:06):** 103 búsquedas en 248 s
+  (~2,4 s/ítem), 159 exports de página, 5.514 filas guardadas, snapshot de 2.632
+  filas y 106 ítems. `diamond` necesitó 39 páginas; `feather` 7, `apple`/`bone` 5,
+  `emerald` 3, `egg`/`quartz`/`redstone` 2, 94 ítems 1 página. Un solo menú vacío
+  (`netherite_boots`) y ningún ítem mezcló filas incidentales con escaneo directo.
+- **Hallazgo:** el buscador matchea también **lore y encantamientos** (ver
+  `docs/AUTOSCAN.md`), por eso las materias primas baratas quedan profundo.
 
 ## Verificación en vivo de `0.7.0` (2026-11-16, 05:25)
 
@@ -166,7 +170,7 @@ Perfil aislado, para no mezclar Wurst con DonutSMP:
 | --- | --- |
 | Perfil del launcher | `Donut Scanner 1.21.11` → versión `fabric-loader-0.20.1-1.21.11` |
 | Carpeta de juego | `%APPDATA%\.minecraft-donutscanner\` |
-| Mods | `donut-order-scanner-0.10.0.jar`, `fabric-api-0.141.6+1.21.11.jar` |
+| Mods | `donut-order-scanner-0.10.0.jar` (instalado), `fabric-api-0.141.6+1.21.11.jar` |
 | Dumps y exports | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\dumps\` |
 | Config del escaneo | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\scan.json` |
 | Cursor de ítems | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\scan-cursor.txt` |
@@ -182,6 +186,11 @@ Perfil aislado, para no mezclar Wurst con DonutSMP:
 > filas no tienen el campo `search` y no se pueden podar sin ambigüedad. También
 > se borró `scan-cursor.txt` para reconstruir el catálogo desde el índice 0.
 > Nunca dejar dos jars del mod en `mods/`: Fabric falla por mod id duplicado.
+>
+> `0.10.1` **construido** el 2026-11-16 (hash `7D6FCE28…51A8`) pero **todavía no
+> instalado**: el juego estaba abierto y bloqueaba el jar viejo. Al cerrarlo:
+> borrar `donut-order-scanner-0.10.0.jar` de `mods\` y copiar el `0.10.1`. Agrega
+> el reintento de menú vacío en página 1.
 
 ### Incidente 0.4.0 (2026-11-16)
 
@@ -348,15 +357,17 @@ npx tsx scripts/load-orders.ts "<ruta>\orders.json"
 
 ## Próximo paso exacto
 
-1. **Correr la sesión** con `0.10.0` (ya instalada) y los 103 provisionales. El
-   log debe decir `Scan started: 103 items, 1-3 s, cap 103 searches / 30 min`.
-   Ahora cada export reporta `(N stored, ...)` con N = filas de la página (hasta
-   45), no solo las del ítem buscado. Medir cuántas filas nuevas aporta un ítem
-   profundo como `diamond`: ahí está el valor de las filas incidentales.
-2. Validar el `orders.json` contra DonutProfit (`npx tsx scripts/load-orders.ts`,
-   dry run). Revisar dos cosas: que cada ítem escaneado directo tenga solo las
-   filas de su escaneo (sin incidentales colgadas), y que el dry run no liste
-   ítems fuera del catálogo que vayan a romper la FK en `--commit`.
+1. **Instalar `0.10.1`** (construido, pendiente por el juego abierto): cerrar el
+   juego, borrar `donut-order-scanner-0.10.0.jar` de `mods\`, copiar
+   `donut-order-scanner-0.10.1.jar`. Es la única versión que reintenta un menú
+   vacío en página 1.
+2. **Validar el `orders.json` de la corrida 0.10.0** contra DonutProfit
+   (`npx tsx scripts/load-orders.ts`, dry run). Revisar dos cosas: que cada ítem
+   escaneado directo tenga solo las filas de su escaneo (sin incidentales
+   colgadas) y que el dry run no liste ítems fuera del catálogo que vayan a
+   romper la FK en `--commit`. Ya se vio que `glass_bottle`,
+   `gray_stained_glass` y `purple_stained_glass` llegaron solo como incidentales
+   de `glass`, y `netherite_boots` tiene 146 filas incidentales de `feather`.
 3. **Ingerir la lista definitiva** cuando el owner la entregue (materias primas +
    ítems crafteados, del grafo de recetas). Solo hay que reemplazar el array
    `items` de `scan.json`; no hace falta recompilar.

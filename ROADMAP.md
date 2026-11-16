@@ -51,6 +51,8 @@
 - [x] Seed de 103 ítems observados en capturas reales (0.9.0), provisional.
 - [x] Filas incidentales (0.10.0): la página completa se guarda; las filas de
       otros ítems valen como fallback y se retiran al escanear ese ítem directo.
+- [x] Reintento de menú vacío en página 1 (0.10.1): 200 ms y una relectura antes
+      de aceptar que la búsqueda no tiene resultados.
 - [ ] **Lista definitiva** desde el grafo de recetas (materias primas + ítems
       crafteados). La aporta el owner; es el bloqueo B3.
 - [ ] Investigar el filtro del menú (slot 47) para acortar la paginación de las

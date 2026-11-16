@@ -32,6 +32,7 @@
 | S13 | 2026-11-16 | 600 ítems en 30 minutos | throughput, 600items, presupuesto, libro, 0.9.0 |
 | S14 | 2026-11-16 | Corrección: crafteo, no barrido | crafteo, recetas, lista, maxPages, correccion |
 | S15 | 2026-11-16 | Filas incidentales | incidental, fallback, merge, pagina1, 0.10.0 |
+| S16 | 2026-11-16 | Revisión de la corrida 0.10.0 | corrida, 248s, 2632filas, lore, menu-vacio, 0.10.1 |
 
 ---
 
@@ -232,3 +233,21 @@
   incidentales pueden traer ítems sin sembrar; el dry run los lista y `--commit`
   falla si faltan.
 - **Keywords:** incidental, fallback, merge, pagina-1, 0.10.0.
+
+## S16 — Revisión de la corrida 0.10.0
+
+- **El humano pidió:** revisar cómo salió la corrida.
+- **Resultado:** 103 búsquedas en 248 s (~2,4 s/ítem), 159 exports de página,
+  5.514 filas, snapshot de 2.632 filas y 106 ítems. Ningún ítem mezcló filas
+  incidentales con escaneo directo; los "duplicados" son órdenes distintas en
+  slots distintos.
+- **Hallazgo:** el buscador matchea **lore y encantamientos**. `/order feather`
+  devolvió botas con *Feather Falling* y libros encantados; `feather` apareció en
+  la página 7. Eso explica la profundidad de las materias primas.
+- **Bug:** `/order netherite_boots` abrió un menú vacío (0 filas) y quedó como "no
+  encontrado", pese a tener 146 órdenes reales vistas como incidentales de
+  `feather`. Es una carrera de carga: el contenedor se dibuja antes que los slots.
+- **Hecho en `0.10.1`:** reintento de 200 ms y una relectura cuando la página 1
+  abre vacía. Construido y testeado (53 tests); pendiente de instalar porque el
+  juego estaba abierto y bloqueaba el jar viejo.
+- **Keywords:** corrida, 248s, 2632filas, lore, menu-vacio, 0.10.1.

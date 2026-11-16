@@ -292,3 +292,29 @@
   filas incidentales pueden traer ítems sin sembrar y `--commit` fallaría.
 - **Consecuencia:** `0.10.0`, 53 tests (3 nuevos: incidental guardada, escaneo
   directo la retira, dos búsquedas no duplican).
+
+## 2026-11-16 — Reintento de menú vacío y semántica real del buscador (0.10.1)
+
+- **Contexto:** la corrida 0.10.0 (103 búsquedas, 248 s) terminó limpia, pero
+  `netherite_boots` devolvió una página 1 con 0 filas y quedó como "no
+  encontrado", cuando tenía 146 órdenes reales vistas como filas incidentales de
+  `feather` un minuto antes.
+- **Diagnóstico:** el contenedor se dibuja antes de que el servidor mande los
+  slots. La captura ocurre en el primer tick en que la pantalla es de órdenes, así
+  que a veces lee el menú todavía vacío. No es que la búsqueda no tenga
+  resultados.
+- **Decisión:** si la página 1 llega con 0 filas, esperar 200 ms (`SETTLE_PAGE`)
+  y releerla una sola vez (`emptyRetried`, por ítem) antes de aceptar que está
+  vacía. Un resultado genuinamente vacío cuesta solo ese reintento.
+- **Alternativa descartada:** subir `screenTimeoutMillis` o esperar siempre un
+  fijo antes de capturar. El reintento solo paga el costo cuando hace falta, y no
+  alarga las 94 búsquedas de una sola página.
+- **Hallazgo de la misma corrida:** el buscador matchea también **lore y
+  encantamientos**, no solo el nombre visible. `/order feather` devolvió
+  `netherite_boots`, `diamond_boots`, `chainmail_boots`, `leather_boots` y
+  `enchanted_book`, con `feather` recién en la página 7. Eso explica por qué las
+  materias primas baratas compiten con todo lo que las menciona en su lore y
+  quedan a decenas de páginas.
+- **Consecuencia:** `0.10.1`, 53 tests (sin tests nuevos: el estado vive en el
+  cliente y depende de `Minecraft`, que no se testea sin el juego). Documentado en
+  `AGENTS.md` y `docs/AUTOSCAN.md`.

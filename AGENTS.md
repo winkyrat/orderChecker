@@ -138,8 +138,14 @@ Nunca dejar dos jars del mod en `mods/`: Fabric falla por mod id duplicado.
 - El escaneo usa **siempre `Most Per Item`**. `Recently Listed` está descartado:
   da lo último publicado y cualquiera puede poner órdenes muy por debajo del
   precio real.
-- El buscador matchea el **nombre visible como subcadena** y ordena por precio
-  descendente. `/order minecraft:diamond` devuelve menú vacío.
+- El buscador matchea el **nombre visible como subcadena** y también el **lore
+  y los encantamientos**: `/order feather` devolvió botas con *Feather Falling*
+  y libros encantados, con `feather` recién en la página 7. Ordena por precio
+  descendente. Por eso las materias primas baratas quedan profundo. Con
+  namespace (`/order minecraft:diamond`) el menú sale vacío.
+- Un menú que abre **vacío** en página 1 suele estar todavía cargando: el
+  contenedor se dibuja antes de que lleguen los slots. `0.10.1` reintenta una
+  vez a los 200 ms antes de creer que la búsqueda no tiene resultados.
 - Se pagina hasta la **primera página que contiene el ítem** y se corta ahí:
   esa página ya trae sus órdenes más caras. No se lee la banda completa.
 - Topes: `maxPages` 200 (tope por ítem, guarda anti-bucle), `maxPagesPerSession`
