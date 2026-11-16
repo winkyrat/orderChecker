@@ -79,6 +79,37 @@ Falta medir en vivo cuántas páginas necesita `diamond`.
 Efecto secundario útil: `$ 585M each` parsea bien a `585000000`. Quedó el
 fixture `orders-global-page1.json` con esa página.
 
+### Medición de profundidad (04:48)
+
+Dos corridas de sonda con un solo ítem (`minecraft:diamond`), `maxPages: 30`,
+`maxItemsPerSession: 1`:
+
+| Modo del filtro | Páginas | Filas | ¿Apareció `minecraft:diamond`? |
+| --- | --- | --- | --- |
+| `Recently Listed` | 4 | 178 | **Sí, en la página 1.** 3 órdenes: `$11.000`, `$11.100`, `$10.000`. Cortó en la p4 al no haber más diamantes. |
+| `Most Per Item` | 30 | 1324 | **No.** |
+
+Progresión de precios en `Most Per Item`: p1 `5.3M–2M`, p10 `500K–451K`,
+p20 `200K–150K`, p30 `56K–50.5K`. Como el diamante está en `$10-11K`, caería
+cerca de la **página 40-50**: unos 45 clics para un solo ítem, contra 4 en
+`Recently Listed`.
+
+Conclusiones:
+
+- La escalera completa de precios para nombres genéricos **no es alcanzable** a
+  un costo razonable. Ni siquiera el gear de diamante entra completo: 30 páginas
+  (1350 filas) y seguía en gear.
+- `Recently Listed` llega al ítem barato enseguida, pero devuelve una **muestra
+  de órdenes recientes**, no el libro completo. Para `diamond` fueron 3 filas.
+- `Most Per Item` sí da el **libro completo** de los ítems cuyo nombre no se
+  comparte (por ejemplo `iron_ingot`: 135 filas en 3 páginas) y el mejor precio
+  arriba, que es lo que usa el motor de flips.
+- Aparecieron ítems nuevos del servidor: `minecraft:diamond_nautilus_armor` y
+  `minecraft:diamond_hoe`.
+
+Decisión pendiente con el owner: modo único (`Recently Listed` para todo, o
+`Most Per Item` para todo) o híbrido por sesión con listas disjuntas.
+
 ## Instalación en la máquina del owner (2026-11-13)
 
 Perfil aislado, para no mezclar Wurst con DonutSMP:
@@ -245,21 +276,18 @@ npx tsx scripts/load-orders.ts "<ruta>\orders.json"
 
 ## Próximo paso exacto
 
-1. **Instalar 0.5.0** (cerrar el juego, borrar `0.4.1`, copiar el `0.5.0`).
-2. **Medir la profundidad de `diamond`** (sonda preparada el 2026-11-16):
-   `scan.json` quedó con un solo ítem, `maxPages: 30`, `maxItemsPerSession: 1`,
-   y la lista de 60 respaldada en `scan.json.bak-catalogue`. Correr F9 una vez y
-   leer el log:
-   - `Scan: /order diamond done -> N pages, minecraft:diamond found`
-   - o `never returned minecraft:diamond within 30 pages`.
-   Con ese número se decide: si N ≤ 8, `maxPages` queda en 12 y listo; si N es
-   15-30, paginar profundo solo para los 2-3 ítems que el owner comercia de
-   verdad; si no aparece en 30, la paginación no sirve para nombres genéricos y
-   hay que cambiar de estrategia.
-3. Repetir con `emerald` y `coal` (los otros dos nombres genéricos del catálogo).
-   Anotar páginas por ítem para calibrar `maxPages` y `maxPagesPerSession`.
-4. Volver a la lista de 60 y ajustar `scan.json` (ritmo, topes, lista de ítems).
-5. Si el cliente no entra con 1.21.11: recompilar para 26.3 (Fabric API
+1. **Decidir el modo de escaneo** (ver "Medición de profundidad"). Tres opciones:
+   - `Recently Listed` para todo: alcanza todos los ítems en 2-4 páginas, pero
+     los precios son una muestra reciente.
+   - `Most Per Item` para todo: mejor precio arriba y libros completos en los
+     nombres únicos, pero los genéricos (`diamond`, `emerald`, `coal`,
+     `redstone`, `glass`, ...) quedan inalcanzables.
+   - Híbrido por sesión: `Most Per Item` para los nombres únicos y `Recently
+     Listed` para los genéricos, con listas disjuntas para que el merge no
+     choque. Requiere que el owner cambie el filtro entre sesiones y que el mod
+     detecte el modo activo y avise si no coincide.
+2. Implementar la opción elegida y documentarla en `docs/AUTOSCAN.md`.
+3. Si el cliente no entra con 1.21.11: recompilar para 26.3 (Fabric API
    `0.166.2+26.3`, Java 25, mappings de Mojang). El código es portable.
 
 ## Bloqueos
@@ -268,12 +296,10 @@ npx tsx scripts/load-orders.ts "<ruta>\orders.json"
 - B2: resuelto. El owner aceptó el riesgo y eligió modo autónomo (C).
 - B3: lista de ítems. Provisional: los 60 del seed de DonutProfit.
 - B8: resuelto. Modo C, con jitter/pausas/topes y sin evasión.
-- B9: **cobertura de búsqueda**. Un nombre genérico devuelve todas las variantes
-  ordenadas por precio descendente, así que el ítem barato aparece último.
-  Descartados `/order minecraft:<id>` (menú vacío), `/order` sin argumentos
-  (lista global enterrada por precio) y el filtro `Recently Listed` (da lo
-  último, no la escalera). Mitigado en `0.5.0` paginando hasta encontrar el
-  ítem; falta medir la profundidad real.
+- B9: **cobertura de búsqueda**. Medido: `Most Per Item` no encuentra
+  `minecraft:diamond` ni en 30 páginas (está ~p40-50); `Recently Listed` lo
+  encuentra en la página 1 con 3 órdenes. La escalera completa de nombres
+  genéricos no es alcanzable a costo razonable. Falta elegir el modo.
 - Dumps reales: **desbloqueado**. Siete fixtures reales.
 
 ## Comandos previstos
