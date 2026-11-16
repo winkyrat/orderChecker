@@ -24,10 +24,8 @@ Perfil aislado, para no mezclar Wurst con DonutSMP:
 | Dumps y exports | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\dumps\` |
 | Fabric Loader | `0.20.1` (instalado con installer 1.1.2 en `.minecraft/versions`) |
 
-> `0.3.0` está compilado en `build/libs/` pero **todavía no está instalado**: la
-> instancia abierta tiene el jar viejo bloqueado. Al cerrar el juego, borrar
-> `donut-order-scanner-0.2.0.jar` de `mods/` y copiar el `0.3.0`. Nunca dejar los
-> dos: Fabric falla por mod id duplicado.
+> `0.3.0` instalado el 2026-11-16 (hash verificado contra `build/libs/`). Nunca
+> dejar dos jars del mod en `mods/`: Fabric falla por mod id duplicado.
 
 - Se copiaron `options.txt`, `optionsof.txt`, `servers.dat` y `servers.dat_old`
   al game dir para no perder ajustes ni servidores.
