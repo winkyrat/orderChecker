@@ -12,7 +12,7 @@ class ScanSessionTest {
     private static ScanConfig config(int maxItems, int maxMinutes) {
         return new ScanConfig(
                 ScanConfig.CATALOGUE_ITEMS, 12, 35, 5, 120, 300,
-                maxItems, maxMinutes, 3, 350, 900, 4000).sanitized();
+                maxItems, maxMinutes, 3, 250, 350, 900, 4000).sanitized();
     }
 
     @Test
@@ -34,6 +34,21 @@ class ScanSessionTest {
         assertFalse(session.shouldStop(59_999L));
         assertTrue(session.shouldStop(60_000L));
         assertEquals("reached the 1 minute cap", session.stopReason(60_000L));
+    }
+
+    @Test
+    void stopsAfterThePageCap() {
+        ScanConfig config = new ScanConfig(
+                ScanConfig.CATALOGUE_ITEMS, 12, 35, 5, 120, 300,
+                40, 30, 30, 2, 350, 900, 4000).sanitized();
+        ScanSession session = new ScanSession(config, 0L);
+
+        session.recordPage();
+        assertFalse(session.shouldStop(1_000L));
+        session.recordPage();
+
+        assertTrue(session.shouldStop(1_000L));
+        assertEquals("reached the 2 page cap", session.stopReason(1_000L));
     }
 
     @Test

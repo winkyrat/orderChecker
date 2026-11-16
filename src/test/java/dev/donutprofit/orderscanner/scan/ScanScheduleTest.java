@@ -14,7 +14,7 @@ class ScanScheduleTest {
                                      int pauseMin, int pauseMax) {
         return new ScanConfig(
                 ScanConfig.CATALOGUE_ITEMS, minSeconds, maxSeconds, pauseChance,
-                pauseMin, pauseMax, 40, 30, 3, 350, 900, 4000).sanitized();
+                pauseMin, pauseMax, 40, 30, 3, 250, 350, 900, 4000).sanitized();
     }
 
     @Test

@@ -55,6 +55,7 @@ public final class AutoScanner {
     private String currentItem = "";
     private String lastFingerprint = "";
     private boolean targetSeen;
+    private int pagesThisItem;
 
     public boolean isRunning() {
         return phase != Phase.OFF;
@@ -178,6 +179,7 @@ public final class AutoScanner {
         page = 1;
         lastFingerprint = "";
         targetSeen = false;
+        pagesThisItem = 0;
 
         String name = shortName(currentItem);
         client.player.connection.sendCommand("order " + name);
@@ -217,10 +219,15 @@ public final class AutoScanner {
 
         failures = 0;
         totalRows += result.rows();
+        session.recordPage();
+        pagesThisItem++;
+
         // Log what the menu actually contained, not the item that was searched:
         // a generic search returns every variant whose id or name matches.
-        LOGGER.info("Scan: /order {} page {} -> {} rows {}", shortName(currentItem), page, result.rows(), result.itemIds());
-        if (result.itemIds().contains(currentItem)) {
+        boolean pageHasTarget = result.itemIds().contains(currentItem);
+        LOGGER.info("Scan: /order {} page {} -> {} rows {}",
+                shortName(currentItem), page, result.rows(), result.itemIds());
+        if (pageHasTarget) {
             targetSeen = true;
         }
 
@@ -230,13 +237,25 @@ public final class AutoScanner {
         lastFingerprint = fingerprint;
 
         int nextSlot = nextPageSlot(menu);
-        if (nextSlot >= 0 && page < config.maxPages() && !samePage) {
+        boolean canPage = nextSlot >= 0 && page < config.maxPages() && !samePage;
+
+        // The list is sorted by price, highest first, so the requested item is
+        // the cheapest part of its own band and appears last. Once it shows up,
+        // keep reading until a page has none of it: that page marks the end of
+        // its band, and everything below belongs to other items.
+        boolean targetBandClosed = targetSeen && !pageHasTarget;
+
+        if (canPage && !targetBandClosed && !session.pagesExhausted()) {
             client.gameMode.handleInventoryMouseClick(
                     menu.containerId, nextSlot, 0, ClickType.PICKUP, client.player);
             page++;
             phase = Phase.SETTLE_PAGE;
             deadline = now + schedule.pageDelayMillis(config);
             return;
+        }
+
+        if (canPage && !targetBandClosed) {
+            LOGGER.warn("Scan: page budget reached after {} pages", session.pages());
         }
 
         closeScreen(client);
@@ -247,7 +266,7 @@ public final class AutoScanner {
     private void finishItem(Minecraft client) {
         session.recordItem();
         itemIndex++;
-        int pagesRead = page;
+        int pagesRead = pagesThisItem;
         page = 1;
 
         long now = System.currentTimeMillis();
@@ -260,7 +279,10 @@ public final class AutoScanner {
         deadline = now + schedule.nextDelayMillis(config);
 
         String note = "";
-        if (!targetSeen) {
+        if (targetSeen) {
+            LOGGER.info("Scan: /order {} done -> {} pages, {} found",
+                    shortName(currentItem), pagesRead, currentItem);
+        } else {
             note = " (no " + shortName(currentItem) + " in " + pagesRead + " pages)";
             LOGGER.warn("Scan: /order {} never returned {} within {} pages",
                     shortName(currentItem), currentItem, pagesRead);

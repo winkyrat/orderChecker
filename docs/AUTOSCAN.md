@@ -1,6 +1,7 @@
 # Escaneo autónomo (Fase 3)
 
-> Implementado en `0.4.0`. Tecla **F9** para prender/apagar.
+> Implementado en `0.4.0`. Pagina hasta encontrar el ítem desde `0.5.0`.
+> Tecla **F9** para prender/apagar.
 
 ## Qué hace, paso a paso
 
@@ -8,12 +9,15 @@
 2. Manda `/order <ítem>` como si lo escribieras vos.
 3. Espera el menú (hasta `screenTimeoutMillis`). Si no aparece, salta el ítem.
 4. Lee la página sin tocar nada y escribe el export.
-5. Si hay botón **Next page** y no llegó a `maxPages`, lo clickea una vez y
-   espera `pageDelay*` antes de leer la página nueva.
-6. Cierra el menú.
-7. Espera un tiempo al azar entre `minDelaySeconds` y `maxDelaySeconds`; con
+5. Mira si el ítem pedido está en esa página. Si no está y hay **Next page**,
+   lo clickea y repite, hasta `maxPages`.
+6. Cuando el ítem aparece, sigue leyendo mientras las páginas lo sigan
+   conteniendo, y corta en la primera que ya no lo tenga: ahí termina su banda
+   de precios.
+7. Cierra el menú.
+8. Espera un tiempo al azar entre `minDelaySeconds` y `maxDelaySeconds`; con
    probabilidad `longPauseChancePercent` espera una pausa larga.
-8. Repite hasta el tope de búsquedas o de minutos.
+9. Repite hasta el tope de búsquedas, de páginas o de minutos.
 
 ## Ojo: la búsqueda no es exacta
 
@@ -22,16 +26,19 @@ o nombre contenga "diamond", ordenado de mayor a menor precio: leggings, boots,
 spear, sword, helmet, axe, chestplate. El diamante crudo (~$1-3K) queda al final
 de la lista, después de ~134 filas de gear de 1M–5.8M.
 
-Consecuencia: con `maxPages: 3` el ítem pedido puede no aparecer nunca. El log y
-la barra de acción lo dicen explícitamente:
+Consecuencia: con `maxPages: 3` el ítem pedido puede no aparecer nunca. Por eso
+el escaneo **pagina hasta encontrarlo** (hasta `maxPages`) en vez de leer un
+número fijo de páginas, y corta cuando su banda de precios termina. El log y la
+barra de acción dicen qué pasó:
 
 ```
-[DOS] 1/40 diamond (no diamond in 3 pages) · next in 23s
+[DOS] 1/40 diamond · next in 23s
+[DOS] 1/40 diamond (no diamond in 12 pages) · next in 23s
 ```
 
-Cuando pasa, esas filas de gear igual se guardan (sirven para esos ítems), pero
-el ítem pedido queda sin datos. Para bajar precios exactos de materiales baratos
-hay que paginar más profundo o cambiar el orden.
+Cuando no aparece, esas filas de gear igual se guardan (sirven para esos ítems),
+pero el ítem pedido queda sin datos. Para eso está `maxPages`: subilo si un ítem
+barato vive más profundo.
 
 Atajos descartados con capturas reales (2026-11-16):
 
@@ -39,6 +46,7 @@ Atajos descartados con capturas reales (2026-11-16):
 | --- | --- |
 | `/order minecraft:diamond` | Menú vacío: el id con namespace no matchea. |
 | `/order` sin argumentos | Lista global sin filtrar: 45 elytras de $585M a $530M. |
+| Filtro `Recently Listed` | No sirve: da lo último publicado, no la escalera de precios. |
 
 ## Cómo se prende
 
@@ -66,7 +74,8 @@ editá el archivo, apretá F9 dos veces y toma los cambios sin reiniciar.
 | `longPauseMaxSeconds` | 300 | Pausa larga máxima. |
 | `maxItemsPerSession` | 40 | Tope de búsquedas por sesión. |
 | `maxSessionMinutes` | 30 | Tope de duración de la sesión. |
-| `maxPages` | 3 | Páginas por ítem. |
+| `maxPages` | 12 | Tope duro de páginas por ítem. El escaneo corta antes si ya encontró el ítem. |
+| `maxPagesPerSession` | 250 | Tope de páginas leídas en toda la sesión. Es el control directo de cuántos clics se permiten. |
 | `pageDelayMinMillis` | 350 | Espera mínima tras "Next page". |
 | `pageDelayMaxMillis` | 900 | Espera máxima tras "Next page". |
 | `screenTimeoutMillis` | 4000 | Cuánto esperar a que abra el menú. |
@@ -80,6 +89,7 @@ nunca más de 240 min de sesión). Un `scan.json` roto vuelve a los defaults.
 | --- | --- |
 | Tres fallos seguidos | `Scan off: <motivo> three times in a row` |
 | Tope de búsquedas o minutos | `Scan off: reached the 40 search cap` |
+| Tope de páginas | `Scan off: reached the 250 page cap` |
 | Aparece otro menú que no es el de órdenes | `Scan off: another menu is open` |
 | Movés, atacás o usás el ítem en mano | `Scan off: you started playing` |
 | La ventana pierde el foco | `Scan off: the window lost focus` |

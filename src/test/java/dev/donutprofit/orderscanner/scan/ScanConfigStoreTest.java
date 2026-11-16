@@ -25,6 +25,8 @@ class ScanConfigStoreTest {
         assertEquals(ScanConfig.CATALOGUE_ITEMS.size(), config.items().size());
         assertEquals(12, config.minDelaySeconds());
         assertEquals(35, config.maxDelaySeconds());
+        assertEquals(12, config.maxPages());
+        assertEquals(250, config.maxPagesPerSession());
         assertTrue(Files.readString(file).contains("\"items\""));
     }
 
@@ -46,7 +48,7 @@ class ScanConfigStoreTest {
 
         assertEquals(3, config.minDelaySeconds(), "never below three seconds");
         assertEquals(3, config.maxDelaySeconds(), "max is raised to match the minimum");
-        assertEquals(10, config.maxPages());
+        assertEquals(30, config.maxPages());
         assertEquals(240, config.maxSessionMinutes());
         assertEquals(100, config.longPauseChancePercent());
     }

@@ -60,6 +60,7 @@ public final class ScanConfigStore {
                     intOr(root, "maxItemsPerSession", defaults.maxItemsPerSession()),
                     intOr(root, "maxSessionMinutes", defaults.maxSessionMinutes()),
                     intOr(root, "maxPages", defaults.maxPages()),
+                    intOr(root, "maxPagesPerSession", defaults.maxPagesPerSession()),
                     intOr(root, "pageDelayMinMillis", defaults.pageDelayMinMillis()),
                     intOr(root, "pageDelayMaxMillis", defaults.pageDelayMaxMillis()),
                     intOr(root, "screenTimeoutMillis", defaults.screenTimeoutMillis()));

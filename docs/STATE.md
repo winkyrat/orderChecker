@@ -6,14 +6,15 @@
 ## Estado actual
 
 - Fecha: 2026-11-16.
-- Fase: **Fase 3 probada en vivo (0.4.1)**. F8 dumpea; F9 prende el escaneo
-  autónomo. Primera corrida real completa: 7 búsquedas, 938 filas, sin fallos.
-- Build/tests: `gradlew build` verde. **38 tests** (dumps, parser, snapshot,
-  config, ritmo, topes). Seis fixtures reales.
+- Fase: **Fase 3 probada en vivo**. Primera corrida real completa: 7 búsquedas,
+  938 filas, sin fallos. En `0.5.0` el escaneo pagina hasta encontrar el ítem
+  pedido en vez de leer un número fijo de páginas.
+- Build/tests: `gradlew build` verde. **40 tests** (dumps, parser, snapshot,
+  config, ritmo, topes de ítems/páginas). Siete fixtures reales.
 - Aprobación del owner para Fase 1: **dada** (eligió modo C y aceptó el riesgo).
-- **Problema abierto:** el buscador de órdenes matchea por subcadena, así que
-  `/order diamond` no devuelve `minecraft:diamond`. Ver "Hallazgo de la
-  corrida 1" abajo.
+- **Problema abierto:** el buscador de órdenes matchea por subcadena y ordena
+  por precio descendente, así que el ítem barato aparece último. Mitigado con
+  paginación dirigida; falta medir cuántas páginas necesita `diamond`.
 
 ## Hallazgo de la corrida 1 (2026-11-16, 04:12–04:15)
 
@@ -66,9 +67,14 @@ pedido. **Las dos fallaron:**
 Conclusión: mandar el id con `minecraft:` no sirve (el mod ya lo quita, está
 bien). El listado global existe y se abre con **un solo comando**, pero al estar
 ordenado por precio descendente los ítems baratos quedan a cientos de páginas de
-distancia. La palanca que queda es el **orden** (filtro del slot 47) o la
-**profundidad de páginas**. Sin resolver: `minecraft:diamond` sigue sin
-capturarse.
+distancia. El filtro `Recently Listed` tampoco sirve: da lo último publicado, no
+la escalera de precios.
+
+Decisión del owner: **paginar hasta encontrar el ítem**. Implementado en
+`0.5.0`: el escaneo lee páginas hasta que aparece el ítem pedido, sigue una
+página más mientras su banda de precios continúe, y corta. `maxPages` (12) es el
+tope duro por ítem y `maxPagesPerSession` (250) el tope de clics de la sesión.
+Falta medir en vivo cuántas páginas necesita `diamond`.
 
 Efecto secundario útil: `$ 585M each` parsea bien a `585000000`. Quedó el
 fixture `orders-global-page1.json` con esa página.
@@ -81,15 +87,16 @@ Perfil aislado, para no mezclar Wurst con DonutSMP:
 | --- | --- |
 | Perfil del launcher | `Donut Scanner 1.21.11` → versión `fabric-loader-0.20.1-1.21.11` |
 | Carpeta de juego | `%APPDATA%\.minecraft-donutscanner\` |
-| Mods | `donut-order-scanner-0.4.2.jar`, `fabric-api-0.141.6+1.21.11.jar` |
+| Mods | `donut-order-scanner-0.5.0.jar`, `fabric-api-0.141.6+1.21.11.jar` |
 | Dumps y exports | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\dumps\` |
 | Config del escaneo | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\scan.json` |
 | Fabric Loader | `0.20.1` (instalado con installer 1.1.2 en `.minecraft/versions`) |
 
-> `0.4.2` compilado el 2026-11-16 (log honesto + aviso de ítem no encontrado).
-> Pendiente de copiar a `mods/` cuando el juego esté cerrado: el jar `0.4.1`
-> sigue instalado y bloqueado mientras el cliente corre. Nunca dejar dos jars
-> del mod en `mods/`: Fabric falla por mod id duplicado.
+> `0.5.0` compilado el 2026-11-16 (paginación dirigida al ítem, tope de páginas
+> por sesión, log honesto). Pendiente de copiar a `mods/` cuando el juego esté
+> cerrado: el jar `0.4.1` sigue instalado y bloqueado mientras el cliente corre.
+> `0.4.2` quedó superada sin instalarse. Nunca dejar dos jars del mod en `mods/`:
+> Fabric falla por mod id duplicado.
 
 ### Incidente 0.4.0 (2026-11-16)
 
@@ -240,19 +247,17 @@ npx tsx scripts/load-orders.ts "<ruta>\orders.json"
 
 ## Próximo paso exacto
 
-1. **Probar el filtro de slot 47** (única palanca barata que queda). En el juego:
-   click en el hopper hasta que quede **Recently Listed**, después `/order
-   diamond`, F8. Si el ítem barato aparece en la página 1, cada búsqueda vuelve a
-   costar 1-2 páginas y el problema se resuelve sin paginar 15 páginas.
-   Vale también para el listado global (`/order` sin argumentos): ordenado por
-   fecha, es una sola búsqueda con lo más nuevo de todo el servidor.
-   Si no, decidir con el owner entre:
-   - subir `maxPages` solo para los ítems que de verdad comercia;
-   - aceptar cobertura parcial y que el export lo diga (ya avisa en 0.4.2).
-2. Con esa evidencia, ajustar `AutoScanner` y documentar el resultado acá y en
-   `docs/AUTOSCAN.md`.
-3. Ajustar `scan.json` (ritmo, topes, lista de ítems) según lo que se vea.
-4. Si el cliente no entra con 1.21.11: recompilar para 26.3 (Fabric API
+1. **Instalar 0.5.0** (cerrar el juego, borrar `0.4.1`, copiar el `0.5.0`).
+2. **Medir la profundidad de `diamond`**: dejar en `scan.json` un solo ítem
+   (`"items": ["minecraft:diamond"]`) y correr F9. El log dice cuántas páginas
+   hizo falta:
+   - `Scan: /order diamond done -> N pages, minecraft:diamond found`
+   - o `never returned minecraft:diamond within 12 pages`.
+   Con ese número se decide si 12 alcanza o hay que subir `maxPages`.
+3. Repetir con `emerald` y `coal` (los otros dos nombres genéricos del catálogo).
+   Anotar páginas por ítem para calibrar `maxPages` y `maxPagesPerSession`.
+4. Volver a la lista de 60 y ajustar `scan.json` (ritmo, topes, lista de ítems).
+5. Si el cliente no entra con 1.21.11: recompilar para 26.3 (Fabric API
    `0.166.2+26.3`, Java 25, mappings de Mojang). El código es portable.
 
 ## Bloqueos
@@ -262,10 +267,11 @@ npx tsx scripts/load-orders.ts "<ruta>\orders.json"
 - B3: lista de ítems. Provisional: los 60 del seed de DonutProfit.
 - B8: resuelto. Modo C, con jitter/pausas/topes y sin evasión.
 - B9: **cobertura de búsqueda**. Un nombre genérico devuelve todas las variantes
-  ordenadas por precio descendente, así que el ítem barato pedido puede quedar
-  fuera de las 3 páginas. Descartado `/order minecraft:<id>` (menú vacío). El
-  `/order` sin argumentos abre la lista global, útil solo si cambia el orden.
-  Sin resolver: `minecraft:diamond`.
+  ordenadas por precio descendente, así que el ítem barato aparece último.
+  Descartados `/order minecraft:<id>` (menú vacío), `/order` sin argumentos
+  (lista global enterrada por precio) y el filtro `Recently Listed` (da lo
+  último, no la escalera). Mitigado en `0.5.0` paginando hasta encontrar el
+  ítem; falta medir la profundidad real.
 - Dumps reales: **desbloqueado**. Siete fixtures reales.
 
 ## Comandos previstos

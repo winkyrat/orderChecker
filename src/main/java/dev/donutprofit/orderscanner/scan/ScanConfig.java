@@ -24,6 +24,7 @@ public record ScanConfig(
         int maxItemsPerSession,
         int maxSessionMinutes,
         int maxPages,
+        int maxPagesPerSession,
         int pageDelayMinMillis,
         int pageDelayMaxMillis,
         int screenTimeoutMillis) {
@@ -101,7 +102,8 @@ public record ScanConfig(
                 300,
                 40,
                 30,
-                3,
+                12,
+                250,
                 350,
                 900,
                 4000);
@@ -133,7 +135,8 @@ public record ScanConfig(
                 pauseMax,
                 clamp(maxItemsPerSession, 1, 500),
                 clamp(maxSessionMinutes, 1, 240),
-                clamp(maxPages, 1, 10),
+                clamp(maxPages, 1, 30),
+                clamp(maxPagesPerSession, 1, 2000),
                 clamp(pageDelayMinMillis, 150, 10000),
                 clamp(pageDelayMaxMillis, pageDelayMinMillis, 10000),
                 clamp(screenTimeoutMillis, 1000, 15000));
