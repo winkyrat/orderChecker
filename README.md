@@ -3,15 +3,22 @@
 Mod de cliente (Fabric) para leer los valores del menú `/orders` de DonutSMP y
 exportarlos en el formato que consume DonutProfit.
 
-Estado: Fase 3 implementada en `0.4.0`. **F8** vuelca la pantalla abierta y
+Estado: Fase 3 implementada en `0.7.0`. **F8** vuelca la pantalla abierta y
 exporta las órdenes; **F9** prende el escaneo autónomo.
 
+- Coordinación de agentes: `AGENTS.md`
+- Checklist del proyecto: `ROADMAP.md`
+- Decisiones instrumentales: `LOG.md`
+- Interacciones con el humano: `SESSION.md` (leer solo el índice y la última
+  entrada)
+- Estado operativo: `docs/STATE.md`
 - Plan y fuentes: `docs/PLAN.md`
 - Riesgos: `docs/RISKS.md`
 - Preguntas pendientes: `docs/OPEN_QUESTIONS.md`
-- Estado operativo: `docs/STATE.md`
 - Cómo capturar: `docs/CAPTURE_GUIDE.md`
 - Escaneo autónomo: `docs/AUTOSCAN.md`
+
+Repo: <https://github.com/winkyrat/orderChecker>
 
 ## Build
 

@@ -307,16 +307,15 @@ npx tsx scripts/load-orders.ts "<ruta>\orders.json"
 
 ## Próximo paso exacto
 
-1. **Instalar `0.7.0`** (cerrar el juego, borrar el jar viejo, copiar el nuevo).
-   El `scan.json` vivo ya tiene `maxPages: 200` / `maxPagesPerSession: 400`.
-2. **Correr una sesión** con la lista de 60 y `Most Per Item`. El log debe
-   mostrar `done -> 43 pages, minecraft:diamond found` y **cortar ahí**, sin
-   seguir a las páginas 44-75. Esperado: 1 página para los nombres propios y
-   20-50 para `iron`, `emerald`, `diamond` y `redstone`.
-3. Validar el `orders.json` resultante contra DonutProfit
+1. **Correr una sesión** con `0.7.0` (ya instalada) y la lista de 60 con
+   `Most Per Item`. El log debe mostrar `done -> 43 pages, minecraft:diamond
+   found` y **cortar ahí**, sin seguir a las páginas 44-75. Esperado: 1 página
+   para los nombres propios y 20-50 para `iron`, `emerald`, `diamond` y
+   `redstone`.
+2. Validar el `orders.json` resultante contra DonutProfit
    (`npx tsx scripts/load-orders.ts`, dry run). Confirmar que `minecraft:diamond`
    tiene sus órdenes más caras (`$11.200` y alrededores) y ninguna de `$1`.
-4. Si el cliente no entra con 1.21.11: recompilar para 26.3 (Fabric API
+3. Si el cliente no entra con 1.21.11: recompilar para 26.3 (Fabric API
    `0.166.2+26.3`, Java 25, mappings de Mojang). El código es portable.
 
 ## Bloqueos

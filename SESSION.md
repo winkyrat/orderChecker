@@ -1,0 +1,129 @@
+# SESSION — interacciones con el humano
+
+> Registro **aditivo**. Cada agente agrega una entrada al final y una fila al
+> índice. Nunca reescribir ni resumir entradas viejas.
+
+## Cómo leer este archivo (obligatorio)
+
+**No leer `SESSION.md` completo.** Es largo y crece sin límite.
+
+1. Leer el índice de abajo (tabla `S1..Sn`).
+2. Leer **solo la última entrada**:
+   `Get-Content SESSION.md -Tail 60`.
+3. Para un tema puntual:
+   `Select-String -Path SESSION.md -Pattern "<keyword>"`.
+
+## Índice
+
+| ID | Fecha | Tema | Keywords |
+| --- | --- | --- | --- |
+| S1 | 2026-11-13 | Objetivo, límites y prioridades | objetivo, ban, datos, español, cliente |
+| S2 | 2026-11-13 | Stack y toolchain | fabric, 1.21.11, java, jdk25, loom |
+| S3 | 2026-11-13 | Parser, export y merge | parser, zod, orders.json, truncar, merge |
+| S4 | 2026-11-13 | Aprobación del escaneo autónomo | fase3, modoC, ritmo, 60items, riesgo |
+| S5 | 2026-11-16 | Primera corrida real | f9, 938filas, subcadena, diamond |
+| S6 | 2026-11-16 | Medición de profundidad | recently, mostperitem, 30paginas, 11k |
+| S7 | 2026-11-16 | Modo único y sin tope | mostperitem, sinlimite, 0.6.0, cursor |
+| S8 | 2026-11-16 | Una sola página | 75paginas, banda, $1, 0.7.0 |
+| S9 | 2026-11-16 | Multi-agente y GitHub | agents, roadmap, log, session, push |
+
+---
+
+## S1 — Objetivo, límites y prioridades
+
+- **El humano pidió:** un mod cliente que lea los precios de `/order` de
+  DonutSMP y exporte JSON que DonutProfit pueda consumir; instalarlo en su
+  Minecraft y que funcione manual (F8) y autónomo (F9).
+- **Decisiones:** chat y docs en español; código, archivos y commits en inglés.
+  Prioridades en orden: riesgo de ban, corrección de datos, velocidad por
+  eficiencia. Solo cliente, sin credenciales, sin secretos. No tocar
+  `../oreboard` sin permiso.
+- **Por qué:** el humano quiere datos reales para calcular profit sin arriesgar
+  la cuenta ni ensuciar el repo hermano.
+- **Keywords:** objetivo, ban, datos, español, cliente, oreboard.
+
+## S2 — Stack y toolchain
+
+- **El humano aceptó:** Fabric con Minecraft 1.21.11 y Java 21.
+- **Decisión instrumental:** JDK 25 portable en `.tools/` porque Loom 1.19.4 lo
+  exige; el mod compila con `--release 21`.
+- **Alternativas descartadas:** instalar JDK 25 global; Forge/NeoForge; Yarn.
+- **Keywords:** fabric, 1.21.11, java21, jdk25, loom, mojang.
+
+## S3 — Parser, export y merge
+
+- **El humano pidió:** que el export sea compatible con DonutProfit sin tocar
+  DonutProfit.
+- **Decisiones:** esquema de `parseOrdersJson`; fila con `side:"buy"`,
+  `quantityRemaining = required - delivered`, precios truncados, snapshot con
+  todas las filas, merge por `itemId|page|slot`.
+- **Validación:** dry run de `scripts/load-orders.ts` con 1118 filas / 37 ítems,
+  0 descartadas, 1 warning.
+- **Keywords:** parser, zod, orders.json, truncar, merge, dryrun.
+
+## S4 — Aprobación del escaneo autónomo
+
+- **El humano eligió:** modo C (autónomo) y aceptó el riesgo.
+- **Ritmo acordado:** medio, 12-35 s entre búsquedas, pausas largas raras, tope
+  de 40 búsquedas / 30 min. Lista inicial: los 60 ítems del catálogo.
+- **Límites explícitos:** sin promesa de indetectabilidad, sin spoof de marca, sin
+  ocultar el mod, sin paquetes falsos, sin movimiento sintético.
+- **Keywords:** fase3, modoC, ritmo, 60items, riesgo, jitter.
+
+## S5 — Primera corrida real
+
+- **Resultado:** 7 búsquedas, 938 filas, 21 capturas, sin fallos; cortada a mano
+  con F9.
+- **Hallazgo:** `/order <nombre>` matchea id o nombre visible como subcadena y
+  ordena por precio descendente. `/order minecraft:diamond` abre menú vacío.
+- **Consecuencia:** `diamond` no apareció; el ítem barato queda al final de su
+  banda. Se agregó log honesto de qué ítems vinieron por página.
+- **Keywords:** f9, 938filas, subcadena, diamond, menú vacío.
+
+## S6 — Medición de profundidad
+
+- **El humano preguntó:** cuántas páginas hacen falta para `diamond`.
+- **Medición:** `Recently Listed` lo encontró en la página 1 con 3 órdenes
+  (`$10K`, `$11K`, `$11.1K`) en 4 páginas; `Most Per Item` no lo encontró en 30
+  páginas (1324 filas, todavía en gear a `$50-56K`).
+- **Conclusión:** `Recently Listed` da una muestra reciente, no la escalera; el
+  libro completo de nombres genéricos no es barato.
+- **Keywords:** recently, mostperitem, 30paginas, 11k, profundidad.
+
+## S7 — Modo único y sin tope
+
+- **El humano decidió:** siempre `Most Per Item`, sin límite práctico de páginas,
+  aunque cueste decenas de clics. `Recently Listed` queda descartado porque
+  cualquiera puede poner órdenes muy por debajo del precio real.
+- **Implementado (0.6.0):** `maxPages` 200 como guarda; `maxPagesPerSession` 400
+  como control real; aviso de ítem cortado; `scan-cursor.txt` para rotar los 60
+  ítems entre sesiones.
+- **Keywords:** mostperitem, sinlimite, 0.6.0, cursor, 400paginas.
+
+## S8 — Una sola página
+
+- **El humano observó:** en la corrida real, `diamond` apareció en la página 43 y
+  el escaneo siguió hasta la 75 sin parar.
+- **Evidencia:** la banda tenía 386 órdenes de diamante en 32 páginas, de
+  `$11.200` a `$1`, incluida una orden trol de 1.000 millones a `$1`. La parte
+  útil (`$11.200 → $8.000`) ya estaba en las primeras páginas.
+- **Decisión del humano:** "solo deberías encontrar 1 página con el ítem; la
+  página mayoritariamente solo necesita la orden más cara".
+- **Implementado (0.7.0):** cortar en la primera página que contiene el ítem.
+  Snapshot reiniciado (backup en `dumps/orders.backup-before-onepage.json`) y
+  cursor borrado para arrancar en `diamond`.
+- **Keywords:** 75paginas, banda, $1, 0.7.0, unapagina.
+
+## S9 — Multi-agente y GitHub
+
+- **El humano pidió:** trabajar con otro agente y dejar trazabilidad en
+  `ROADMAP.md`, `AGENTS.md`, `LOG.md` y `SESSION.md`; commits claros en cambios
+  estructurales, sin PR, push directo a una rama; publicar en
+  <https://github.com/winkyrat/orderChecker>.
+- **Decisión:** los cuatro archivos con las reglas en `AGENTS.md`; `SESSION.md`
+  aditivo con lectura parcial obligatoria; rama única `main`.
+- **Herramienta:** `gh` no está instalado; el push usa el credential manager de
+  Git ya configurado. No se manejan tokens a mano.
+- **Pendiente:** confirmar el primer push y que un agente nuevo pueda retomar
+  leyendo solo `AGENTS.md` + `ROADMAP.md` + `docs/STATE.md` + la última entrada.
+- **Keywords:** agents, roadmap, log, session, push, github, main.
