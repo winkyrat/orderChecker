@@ -60,12 +60,15 @@ pedido. **Las dos fallaron:**
 
 | Comando | Resultado |
 | --- | --- |
-| `/order` sin argumentos | Abre `Orders (Page 1)` **vacío**: 0 filas, sin Next page. No sirve. |
-| `/order minecraft:diamond` | **No** es match exacto. Devolvió la lista **global sin filtrar**, ordenada por precio descendente: 45 elytras de `$ 585M` a `$ 530M`, con Next page. |
+| `/order minecraft:diamond` | Menú **vacío**: 0 filas, sin Next page. El id con namespace **no matchea**; el servidor busca sin prefijo. |
+| `/order` sin argumentos | **Lista global sin filtrar** con todas las órdenes del servidor, ordenada por precio descendente: 45 elytras de `$ 585M` a `$ 530M`, con Next page. |
 
-Conclusión: el prefijo `minecraft:` no restringe nada, así que no hay atajo de
-búsqueda. La única palanca que queda es **profundidad de páginas** (o cambiar el
-filtro de slot 47). Sin resolver: `minecraft:diamond` sigue sin capturarse.
+Conclusión: mandar el id con `minecraft:` no sirve (el mod ya lo quita, está
+bien). El listado global existe y se abre con **un solo comando**, pero al estar
+ordenado por precio descendente los ítems baratos quedan a cientos de páginas de
+distancia. La palanca que queda es el **orden** (filtro del slot 47) o la
+**profundidad de páginas**. Sin resolver: `minecraft:diamond` sigue sin
+capturarse.
 
 Efecto secundario útil: `$ 585M each` parsea bien a `585000000`. Quedó el
 fixture `orders-global-page1.json` con esa página.
@@ -238,9 +241,11 @@ npx tsx scripts/load-orders.ts "<ruta>\orders.json"
 ## Próximo paso exacto
 
 1. **Probar el filtro de slot 47** (única palanca barata que queda). En el juego:
-   `/order diamond`, click en el hopper (filtro) hasta que quede **Recently
-   Listed**, F8. Si el ítem barato aparece en la página 1, cada búsqueda vuelve a
+   click en el hopper hasta que quede **Recently Listed**, después `/order
+   diamond`, F8. Si el ítem barato aparece en la página 1, cada búsqueda vuelve a
    costar 1-2 páginas y el problema se resuelve sin paginar 15 páginas.
+   Vale también para el listado global (`/order` sin argumentos): ordenado por
+   fecha, es una sola búsqueda con lo más nuevo de todo el servidor.
    Si no, decidir con el owner entre:
    - subir `maxPages` solo para los ítems que de verdad comercia;
    - aceptar cobertura parcial y que el export lo diga (ya avisa en 0.4.2).
@@ -258,8 +263,9 @@ npx tsx scripts/load-orders.ts "<ruta>\orders.json"
 - B8: resuelto. Modo C, con jitter/pausas/topes y sin evasión.
 - B9: **cobertura de búsqueda**. Un nombre genérico devuelve todas las variantes
   ordenadas por precio descendente, así que el ítem barato pedido puede quedar
-  fuera de las 3 páginas. Descartados: `/order` sin args (vacío) y
-  `/order minecraft:<id>` (lista global). Sin resolver: `minecraft:diamond`.
+  fuera de las 3 páginas. Descartado `/order minecraft:<id>` (menú vacío). El
+  `/order` sin argumentos abre la lista global, útil solo si cambia el orden.
+  Sin resolver: `minecraft:diamond`.
 - Dumps reales: **desbloqueado**. Siete fixtures reales.
 
 ## Comandos previstos

@@ -37,8 +37,8 @@ Atajos descartados con capturas reales (2026-11-16):
 
 | Intento | Resultado |
 | --- | --- |
-| `/order` sin argumentos | Menú vacío, 0 filas. |
-| `/order minecraft:diamond` | Lista global sin filtrar: 45 elytras de $585M a $530M. |
+| `/order minecraft:diamond` | Menú vacío: el id con namespace no matchea. |
+| `/order` sin argumentos | Lista global sin filtrar: 45 elytras de $585M a $530M. |
 
 ## Cómo se prende
 
