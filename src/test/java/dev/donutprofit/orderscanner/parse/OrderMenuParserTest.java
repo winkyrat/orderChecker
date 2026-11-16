@@ -132,6 +132,38 @@ class OrderMenuParserTest {
     }
 
     @Test
+    void readsTheSecondPageAndKeepsItsNumber() throws Exception {
+        OrderMenu menu = OrderMenuParser.parse(fixture("orders-diamond-block-page2.json"));
+
+        assertEquals(2, menu.page(), "the title carries the page number");
+        assertEquals(45, menu.orders().size());
+        assertEquals(70000L, menu.orders().get(0).unitPrice(), "$ 70K each");
+        assertEquals(20000L, menu.orders().get(44).unitPrice(), "$ 20K each");
+    }
+
+    @Test
+    void anEmptySearchProducesNoRowsAndAWarning() throws Exception {
+        OrderMenu menu = OrderMenuParser.parse(fixture("orders-empty-search.json"));
+
+        assertTrue(menu.orders().isEmpty(), "a search with no results must not invent rows");
+        assertTrue(menu.warnings().stream().anyMatch(w -> w.contains("No order rows found")));
+    }
+
+    @Test
+    void aSearchCanReturnSeveralItemVariants() throws Exception {
+        OrderMenu menu = OrderMenuParser.parse(fixture("orders-diamond-search-page1.json"));
+
+        assertEquals(44, menu.orders().size(), "45 rows minus one already fully delivered");
+        Set<String> items = menu.orders().stream()
+                .map(ParsedOrder::itemId)
+                .collect(Collectors.toSet());
+        assertEquals(Set.of("minecraft:diamond_leggings", "minecraft:diamond_boots", "minecraft:diamond_spear"),
+                items);
+        assertTrue(menu.warnings().stream().anyMatch(w -> w.contains("fully delivered")),
+                "the completed order is reported, not silently dropped");
+    }
+
+    @Test
     void skipsFullyDeliveredOrders() {
         SlotDump slot = new SlotDump(
                 0, 0, 0, 0, "container", "minecraft:stone", 1, "Stone", false,

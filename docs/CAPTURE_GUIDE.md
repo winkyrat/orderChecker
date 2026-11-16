@@ -45,6 +45,9 @@ El comando confirmado es **`/order <ítem>`** (singular).
 Ya tengo tres capturas reales (glass, diamond_block, obsidian). No hace falta
 repetirlas: están en `src/test/resources/fixtures/`.
 
+> Estado 2026-11-16: 1–3 **hechas**. Falta solo la 4 (ítem con nombre custom),
+> que no bloquea nada.
+
 ## 4. Qué hace F8
 
 - Funciona **con el menú abierto** (no solo en el mundo). F8 se intercepta en

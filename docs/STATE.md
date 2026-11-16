@@ -8,8 +8,8 @@
 - Fecha: 2026-11-16.
 - Fase: **Fase 2 implementada y validada contra DonutProfit**. F8 dumpea la
   pantalla y, si es el menú de órdenes, además escribe el export.
-- Build/tests: `gradlew build` verde. **21 tests**. Fixtures reales de
-  `/order glass`, `/order diamond_block` y `/order obsidian`.
+- Build/tests: `gradlew build` verde. **24 tests**. Seis fixtures reales
+  (glass, diamond_block p1/p2, obsidian, búsqueda "diamond", búsqueda vacía).
 - Aprobación del owner para Fase 1: **dada** (eligió modo C y aceptó el riesgo).
 
 ## Instalación en la máquina del owner (2026-11-13)
@@ -68,7 +68,10 @@ Evidencia en `src/test/resources/fixtures/`:
 | --- | --- |
 | `orders-glass-page1.json` | `/order glass` (45 filas, 8 variantes de vidrio) |
 | `orders-diamond-block-page1.json` | `/order diamond_block` (45 filas, un solo ítem) |
+| `orders-diamond-block-page2.json` | la misma búsqueda, página 2 (70K → 20K) |
 | `orders-obsidian-page1.json` | `/order obsidian` (obsidian + crying_obsidian) |
+| `orders-diamond-search-page1.json` | `/order diamond` (armadura; una orden ya completa) |
+| `orders-empty-search.json` | `/order zzzzz` (sin resultados) |
 
 - Menú de 90 slots: **0–44 órdenes**, 45–46 vacíos, 47 filtro (hopper),
   48 Shard Shop, 49 Orders, 50 Search, 51 Your Orders, 53 Next page,
@@ -92,6 +95,17 @@ Evidencia en `src/test/resources/fixtures/`:
 - Una búsqueda puede llenar la página con **un solo ítem** (45 órdenes de
   `diamond_block`), así que "mejor precio por ítem" perdía la profundidad del
   libro: el snapshot guarda **todas** las filas.
+- Paginación confirmada: `/order diamond_block` página 2 tiene 45 filas más,
+  precios 70K → 20K, sin solaparse con la página 1 (92K → 73K). El título pasa a
+  `Orders (Page 2)` y el parser lo lee de ahí.
+- `/order diamond` **no** es búsqueda exacta: devuelve variantes por nombre
+  (`diamond_leggings`, `diamond_boots`, `diamond_spear`). `diamond_block` no
+  aparece en la página 1 porque sus órdenes (~92K) son mucho más baratas que la
+  armadura (2M–5.8M) y caen en páginas siguientes. Ordenado por precio
+  descendente, lo barato queda al final.
+- `/order zzzzz` abre el menú igual, con **0 órdenes**: el parser no inventa
+  filas y deja un warning (`No order rows found`).
+- Una orden con `36/36 Delivered` se descarta con warning (ya está completa).
 - El slot 53 (`arrow`, `Next page`) confirma que hay más de una página.
 - El filtro (slot 47) ofrece `Most Per Item`, `Most Paid`, `Recently Listed`.
   Hoy no se toca: se asume el orden por defecto.
@@ -113,19 +127,20 @@ mismo slot, y a la vez permite juntar página 1 y página 2 del mismo ítem.
 
 ### Validación del contrato (2026-11-16, sin tocar DonutProfit)
 
-Los tres dumps reales se reprocesaron sin el juego y el `orders.json` resultante
-se pasó por el cargador de DonutProfit en **dry run**:
+Las siete capturas reales se reprocesaron sin el juego y el `orders.json`
+resultante se pasó por el cargador de DonutProfit en **dry run**:
 
 ```
-Orders: 135 across 11 items.
-  minecraft:diamond_block: 45 rows, 153585 units
+Orders: 224 across 14 items.
+  minecraft:diamond_block: 90 rows, 232404 units
   minecraft:crying_obsidian: 40 rows, 262777 units
   minecraft:glass: 22 rows, 2308093 units
   ...
 Dry run: nothing written.
 ```
 
-135 filas, **0 descartadas**. Se puede repetir con cualquier captura nueva:
+224 filas, **0 descartadas**. `diamond_block` junta las 90 filas de página 1 y 2
+sin pisarse. Se puede repetir con cualquier captura nueva:
 
 ```powershell
 cd "..\oreboard"
@@ -148,14 +163,13 @@ npx tsx scripts/load-orders.ts "<ruta>\orders.json"
 
 ## Próximo paso exacto
 
-1. Capturar con el juego ya abierto (`0.3.0` en `mods/`). F8 en cada menú:
-   - página 2 de `/order diamond_block` (botón `Next page`, slot 53),
-   - `/order zzzzz` (búsqueda sin resultados),
-   - `/order diamond` (¿trae `diamond` solo, o también `diamond_block`?),
-   - opcional: un ítem con nombre custom (spawner, libro, poción).
-2. Reprocesar los dumps sin el juego y volver a pasar `orders.json` por el
-   cargador de DonutProfit en dry run.
-3. Fase 3 (escaneo autónomo, modo C): diseño con jitter, pausas y topes.
+1. **Instalar 0.3.0**: cerrar el juego, borrar
+   `mods/donut-order-scanner-0.2.0.jar` y copiar
+   `build/libs/donut-order-scanner-0.3.0.jar`. Nunca dejar los dos juntos.
+2. Probar en el juego con 0.3.0: `/order diamond_block` p1, F8; p2, F8. El
+   `orders.json` debe tener ~90 filas de `diamond_block`, no 1.
+3. Fase 3 (escaneo autónomo, modo C): diseño con jitter, pausas y topes, y
+   archivo de configuración para ajustar sin reiniciar.
 4. Si el cliente no entra con 1.21.11: recompilar para 26.3 (Fabric API
    `0.166.2+26.3`, Java 25, mappings de Mojang). El código es portable.
 
