@@ -131,18 +131,25 @@ Nunca dejar dos jars del mod en `mods/`: Fabric falla por mod id duplicado.
   descendente. `/order minecraft:diamond` devuelve menú vacío.
 - Se pagina hasta la **primera página que contiene el ítem** y se corta ahí:
   esa página ya trae sus órdenes más caras. No se lee la banda completa.
-- Topes: `maxPages` es el tope **por ítem** (3 en throughput, 200 en el preset
-  seguro), `maxPagesPerSession` 2000, `maxItemsPerSession` 103 y 30 min por
-  sesión. El clamp duro permite hasta 1000 búsquedas y páginas de 1 s.
+- Topes: `maxPages` 200 (tope por ítem, guarda anti-bucle), `maxPagesPerSession`
+  2000, `maxItemsPerSession` 103 (tamaño de la lista viva) y 30 min por sesión.
+  El clamp duro permite hasta 1000 búsquedas y un piso de 1 s entre búsquedas.
 - Cadencia: dos presets. **Seguro** (defaults del código): `5-12 s` con sesgo al
   extremo corto y 3 % de pausa de 1-2 min. **Throughput** (el `scan.json` vivo):
-  `1-3 s` con el mismo sesgo, sin pausas, `maxPages` 3, `pageDelay` 150-350 ms,
-  ~2,8 s por ítem. El owner eligió throughput el 2026-11-16 sabiendo que son
-  ~21 comandos por minuto y que contradice la prioridad 1. Si otro agente lo
-  cambia, anotarlo en `LOG.md`.
+  `1-3 s` con el mismo sesgo, sin pausas, `pageDelay` 350-900 ms. El owner eligió
+  throughput el 2026-11-16 sabiendo que son ~21 comandos por minuto y que
+  contradice la prioridad 1. Si otro agente lo cambia, anotarlo en `LOG.md`.
+- `pageDelay` no baja de 350 ms: por debajo, la página puede no haber cargado y
+  el escaneo la toma como "no hay más páginas", perdiendo el ítem en silencio.
 - `scan-cursor.txt` guarda el próximo índice para cubrir la lista entre sesiones.
-  La lista viva tiene **103 ítems** (los observados en capturas reales), no 600:
-  no existe una lista de 600 con evidencia. Ver `docs/AUTOSCAN.md`.
+  La lista viva tiene **103 ítems provisionales**; la definitiva la define el
+  owner desde el grafo de recetas (materias primas **y** ítems crafteados). Ver
+  `docs/AUTOSCAN.md`.
+- **Dominio:** DonutProfit compara el costo de las materias primas contra el
+  valor del ítem crafteado. Por eso la lista incluye las dos puntas y es grande.
+- **Descartado:** leer el libro sin búsqueda (slot 49). Ordena por precio
+  descendente, las materias primas baratas quedan a cientos de páginas y no es
+  `Most Per Item`. La vía es la búsqueda por ítem.
 - Escaneo automático: solo export compacto + `orders.json`. Dump crudo solo F8.
 
 ## 9. Git y GitHub

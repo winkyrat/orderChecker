@@ -58,8 +58,14 @@ Medidas presentes: delay al azar 1-3 s con sesgo corto en el preset de throughpu
 menú, y `maxPages` como tope de profundidad por ítem.
 
 El preset de throughput sube la densidad a ~21 comandos por minuto. Es la
-decisión explícita del owner para cubrir 600 ítems en 30 min y **empeora** este
+decisión explícita del owner para cubrir la lista en 30 min y **empeora** este
 riesgo respecto de 0.8.2: más volumen, no menos.
+
+El otro componente que no se ve en la cuenta de comandos es la **ráfaga de
+clics** de las materias primas: `diamond` son ~42 "Next page" seguidos, ~25 s de
+clics a 350-900 ms. Eso no lo arregla el hueco entre búsquedas; se acota subiendo
+`pageDelayMinMillis` y `pageDelayMaxMillis`, o dejando los ítems más profundos
+para una sesión aparte.
 
 Lo que **no** cambia el fondo del problema: el servidor ve un cliente que manda
 `/order` y clickea "Next page" en un patrón de máquina. Eso es exactamente lo que

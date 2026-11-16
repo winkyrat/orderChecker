@@ -30,6 +30,7 @@
 | S11 | 2026-11-16 | Cadencia de 5 segundos | cadencia, 5segundos, riesgo, 0.8.1 |
 | S12 | 2026-11-16 | Cadencia aleatoria y evasión | aleatorio, sesgo, anticheat, limite, 0.8.2 |
 | S13 | 2026-11-16 | 600 ítems en 30 minutos | throughput, 600items, presupuesto, libro, 0.9.0 |
+| S14 | 2026-11-16 | Corrección: crafteo, no barrido | crafteo, recetas, lista, maxPages, correccion |
 
 ---
 
@@ -195,3 +196,23 @@
 - **Lo que falta para 600 reales:** leer el libro sin búsqueda (botón `Orders`,
   slot 49) en vez de mandar 600 comandos. Requiere medir cuántas páginas tiene.
 - **Keywords:** throughput, 600items, presupuesto, libro, 0.9.0.
+
+## S14 — Corrección: es arbitraje de crafteo, no barrido
+
+- **El humano corrigió:** DonutProfit compara el costo de las materias primas
+  contra el valor del ítem crafteado. La lista incluye las dos puntas, por eso es
+  enorme. Los 103 vistos son solo lo que apareció en pocas pasadas.
+- **Y descartó el barrido:** `/orders` sin argumento (o `Recently Listed`) es
+  inútil. La vía correcta es la de siempre: buscar el valor más alto dentro de
+  `/orders <nombre_de_item>`.
+- **Hecho:** `maxPages` vuelve a 200 (el tope de 3 cortaba las materias primas y
+  destruía el dato), `pageDelay` vuelve a 350-900 ms (por debajo se pierden
+  páginas en silencio). Se conserva el hueco 1-3 s, el cierre a 150 ms y los
+  clamps. Solo cambia `scan.json`, sin recompilar.
+- **Sobre 600:** no es alcanzable con búsqueda por ítem y materias primas
+  profundas. 600 era un aproximado; la métrica real es ítems por sesión sobre la
+  lista definitiva.
+- **Pendiente:** la lista la aporta el owner (o se arma entre los dos desde el
+  grafo de recetas). Los 103 son un seed. Además, investigar el filtro del menú
+  (slot 47), que es la única palanca para acortar la paginación profunda.
+- **Keywords:** crafteo, recetas, lista, maxPages, correccion.

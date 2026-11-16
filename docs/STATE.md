@@ -6,11 +6,11 @@
 ## Estado actual
 
 - Fecha: 2026-11-16.
-- Fase: **Fase 3 verificada en vivo**, ahora en modo throughput. `0.9.0` corre
-  el preset de 600-ítems-en-30-min: `1-3 s` con sesgo corto, `maxPages` 3,
-  `pageDelay` 150-350 ms, ~2,8 s por ítem. Sigue cortando en la primera página
-  que contiene el ítem y **solo guarda las filas de ese ítem**, siempre con
-  `Most Per Item`.
+- Fase: **Fase 3 verificada en vivo**, ahora con preset de throughput. `0.9.0`
+  corre `1-3 s` con sesgo corto y `pageDelay` 350-900 ms, pero mantiene
+  `maxPages` 200: pagina hasta encontrar el ítem. Sigue cortando en la primera
+  página que contiene el ítem y **solo guarda las filas de ese ítem**, siempre
+  con `Most Per Item`.
 - Build/tests: `gradlew build` verde. **50 tests** (dumps, parser, snapshot,
   config, ritmo, topes de ítems/páginas, cursor de ítems). Siete fixtures reales.
 - Aprobación del owner para Fase 1: **dada** (eligió modo C y aceptó el riesgo).
@@ -173,9 +173,9 @@ Perfil aislado, para no mezclar Wurst con DonutSMP:
 | Fabric Loader | `0.20.1` (instalado con installer 1.1.2 en `.minecraft/versions`) |
 
 > `0.9.0` instalado el 2026-11-16 (hash `E5A621AA…93C7` verificado contra
-> `build/libs/`). `scan.json` vivo en preset throughput: **103 ítems** (los
-> observados en capturas reales), `1-3 s`, sin pausas largas, `maxPages: 3`,
-> `pageDelay` 150-350 ms, `maxPagesPerSession: 2000`, `maxItemsPerSession: 103`.
+> `build/libs/`). `scan.json` vivo: **103 ítems provisionales**, `1-3 s`, sin
+> pausas largas, `maxPages: 200`, `pageDelay` 350-900 ms,
+> `maxPagesPerSession: 2000`, `maxItemsPerSession: 103`.
 > El `orders.json` que mezclaba páginas de búsquedas ajenas quedó respaldado
 > como `dumps/orders.backup-mixed-pages.json` y se reinició el snapshot: sus
 > filas no tienen el campo `search` y no se pueden podar sin ambigüedad. También
@@ -347,34 +347,35 @@ npx tsx scripts/load-orders.ts "<ruta>\orders.json"
 
 ## Próximo paso exacto
 
-1. **Correr la sesión de throughput** con `0.9.0` (ya instalada) y los 103 ítems.
-   El log debe decir `Scan started: 103 items, 1-3 s, cap 103 searches / 30 min`.
-   Esperado: ~4-5 min, casi todos los ítems en 1 página, y los profundos
-   (`diamond`, `emerald`, `iron`, `redstone`) cortados en 3 páginas con
-   `cut after 3 pages by the 3 page per-item cap`. Eso es lo esperado, no un
-   fallo: el preset cambia profundidad por cobertura.
+1. **Correr la sesión** con `0.9.0` (ya instalada) y los 103 provisionales. El
+   log debe decir `Scan started: 103 items, 1-3 s, cap 103 searches / 30 min`.
+   Esperado: los ítems comunes en 1 página y los profundos (`diamond`, `emerald`,
+   `iron`, `redstone`) paginando hasta encontrarlos, sin corte por `maxPages`.
+   Medir el tiempo total: es el número que decide qué lista entra en 30 min.
 2. Validar el `orders.json` contra DonutProfit (`npx tsx scripts/load-orders.ts`,
    dry run). Confirmar que cada ítem tiene solo sus propias filas y que no hay
    filas de `diamond_sword` colgadas de otras búsquedas.
-3. **Medir el libro completo** (lo que habilita los 600 ítems de verdad): abrir
-   el menú de órdenes, clickear `Orders` (slot 49), y anotar cuántas páginas
-   tiene el libro sin búsqueda. Con eso se decide si el barrido completo es una
-   pasada de 1-2 min (que reemplaza 600 búsquedas) o si no escala. Sin esa
-   medición no se implementa el barrido: sería adivinar la estructura del menú.
-4. Si el cliente no entra con 1.21.11: recompilar para 26.3 (Fabric API
+3. **Ingerir la lista definitiva** cuando el owner la entregue (materias primas +
+   ítems crafteados, del grafo de recetas). Solo hay que reemplazar el array
+   `items` de `scan.json`; no hace falta recompilar.
+4. **Investigar el filtro del menú (slot 47).** Es la única palanca conocida para
+   acortar la paginación de las materias primas: si filtra por categoría, un
+   `diamond` con menos coincidencias podría aparecer en 5 páginas en vez de 42.
+   Requiere un F8 con el filtro abierto para ver qué opciones tiene.
+5. Si el cliente no entra con 1.21.11: recompilar para 26.3 (Fabric API
    `0.166.2+26.3`, Java 25, mappings de Mojang). El código es portable.
 
 ## Bloqueos
 
 - B1: confirmar que el cliente entra con 1.21.11. Si no, portar a 26.3.
 - B2: resuelto. El owner aceptó el riesgo y eligió modo autónomo (C).
-- B3: **parcial**. La lista viva tiene 103 ítems con evidencia (aparecen en las
-  311 capturas). No hay lista de 600: llegar a ese número exige leer el libro sin
-  búsqueda, o inventar ids. Ver próximo paso 3.
-- B10: el barrido del libro completo (sin búsqueda) no está implementado y no se
-  puede implementar sin medir cuántas páginas tiene y si el botón `Orders` abre
-  la vista sin filtro. Es la única vía conocida para 600 ítems con menos
-  comandos, no con más.
+- B3: **abierto**. La lista final no existe todavía: el owner la va a definir con
+  DeepSeek, o se arma entre los dos desde el grafo de recetas. Los 103 del
+  `scan.json` son un seed provisional. 600 es un aproximado, no un objetivo duro.
+- B10: **descartado**. Leer el libro sin búsqueda (botón `Orders`, slot 49) no
+  sirve: ordena por precio descendente y las materias primas baratas quedan a
+  cientos de páginas, además de no ser `Most Per Item`. La vía es la búsqueda por
+  ítem, como está implementado.
 - B8: resuelto. Modo C, con jitter/pausas/topes y sin evasión.
 - B9: **resuelto**. `Most Per Item` es el modo único. `diamond` vive cerca de la
   página 40-50 y se llega paginando profundo; el costo se acota con

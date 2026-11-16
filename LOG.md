@@ -246,3 +246,27 @@
   no opera.
 - **Consecuencia:** `0.9.0`, 50 tests. El camino a 600 reales es el barrido del
   libro sin búsqueda (slot 49), pendiente de medición.
+
+## 2026-11-16 — Corrección de dominio: el barrido del libro no sirve
+
+- **Error corregido:** la entrada anterior proponía leer el libro sin búsqueda
+  para cubrir todos los ítems en una pasada. El owner lo descartó con razón: el
+  libro sin argumento ordena por precio descendente, así que las materias primas
+  baratas quedan a cientos de páginas, y además no es `Most Per Item`.
+- **Modelo correcto del producto:** DonutProfit busca **arbitraje de crafteo**:
+  compara el costo de las materias primas contra el valor de venta del ítem
+  crafteado. La lista tiene que traer las dos puntas, y por eso es grande. No
+  sale de las capturas: sale del grafo de recetas.
+- **Decisión:** se mantiene la búsqueda por ítem, que es lo que el mod ya hace.
+  `maxPages` vuelve a 200 (el tope de 3 cortaba las materias primas profundas y
+  destruía justamente el dato que importa). `pageDelay` vuelve a 350-900 ms: por
+  debajo de 350 la página puede no haber cargado y el escaneo la toma como fin de
+  lista, perdiendo el ítem en silencio.
+- **Se conserva de 0.9.0:** hueco `1-3 s` con sesgo, cierre a 150 ms, clamps de
+  1 s y 1000 búsquedas. El hueco es la palanca barata; el `pageDelay` es la que
+  toca la corrección de datos, y esa no se baja sin medir.
+- **Sobre el objetivo:** "600 en 30 min" no es alcanzable con búsqueda por ítem
+  y materias primas profundas; el costo lo fija el ítem más profundo. La cifra
+  correcta es ítems por sesión, medida sobre la lista real.
+- **Consecuencia:** solo cambia `scan.json` (sin recompilar) y la documentación.
+  La lista de 103 es un seed provisional; la definitiva la aporta el owner.

@@ -93,10 +93,10 @@ editá el archivo, apretá F9 dos veces y toma los cambios sin reiniciar.
 | `longPauseMaxSeconds` | 120 | Pausa larga máxima. |
 | `maxItemsPerSession` | 103 | Tope de búsquedas por sesión. |
 | `maxSessionMinutes` | 30 | Tope de duración de la sesión. |
-| `maxPages` | 3 | Tope de páginas **por ítem**. Con 3 se corta la paginación profunda; con 200 se llega a los ítems baratos como `diamond`. |
+| `maxPages` | 200 | Tope de páginas **por ítem**, guarda anti-bucle. El escaneo corta antes si encuentra el ítem. |
 | `maxPagesPerSession` | 2000 | Tope de páginas leídas en toda la sesión. Es el control real de cuántos clics se permiten. |
-| `pageDelayMinMillis` | 150 | Espera mínima tras "Next page". |
-| `pageDelayMaxMillis` | 350 | Espera máxima tras "Next page". |
+| `pageDelayMinMillis` | 350 | Espera mínima tras "Next page". Por debajo de 350 la página puede no haber cargado y se pierde el ítem. |
+| `pageDelayMaxMillis` | 900 | Espera máxima tras "Next page". |
 | `screenTimeoutMillis` | 4000 | Cuánto esperar a que abra el menú. |
 
 Valores fuera de rango se recortan solos (nunca menos de 1 s entre búsquedas,
@@ -112,39 +112,36 @@ pausa de 1-2 min, `maxPages` 200, 40 búsquedas. Es el que deja el repo si borr�
 `scan.json`. Rinde ~10-11 s por ítem.
 
 **Throughput (`scan.json` vivo desde `0.9.0`):** `1-3 s` con el mismo sesgo
-(promedio ~1,54 s), sin pausas largas, `maxPages` 3, `pageDelay` 150-350 ms. La
-cuenta sale de lo medido, no de una estimación:
+(promedio ~1,54 s), sin pausas largas, `pageDelay` 350-900 ms y `maxPages` 200.
+La cuenta sale de lo medido, no de una estimación:
 
 | Componente | Costo medido |
 | --- | --- |
 | Abrir menú + capturar 1 página | ~1,0 s |
 | Espera de cierre por ítem | 0,15 s (era 0,3) |
-| Página extra ("Next page") | ~0,25 s a 150-350 ms |
+| Página extra ("Next page") | ~0,5 s a 350-900 ms |
 | Hueco entre búsquedas | ~1,54 s promedio |
 
-Con la distribución real de la corrida de las 06:21 (76 % de los ítems entran en
-1 página, 8 % en 2, 16 % tocan el tope de 3), el costo por ítem queda en
-**~2,8 s**. Eso da **~28 min para 600 ítems**, justo dentro del objetivo.
+Con eso, un ítem que aparece en la página 1 cuesta **~2,7 s**, y uno que aparece
+en la página 42 cuesta **~23 s**. El promedio no depende del preset sino de
+**cuán profunda es la lista**, y eso todavía no se sabe.
 
-**El precio de ese número:**
+**Por qué no hay un "600 en 30 min":** el costo lo fija el ítem más profundo, no
+el más común. Con 80 % de ítems en 1 página y 20 % en ~40 páginas, el trabajo solo
+ya son ~50 min. Bajar el hueco no toca eso. Para que la cifra tenga sentido hay
+que medir la lista real y hablar de *ítems por sesión*, no de un número redondo.
+
+**El precio de la velocidad:**
 
 - Son **~21 comandos por minuto** durante media hora. Es el patrón más parecido
-  a un bot que este proyecto puede producir. No hay forma de hacer 600 ítems en
-  30 min con menos: el piso físico por ítem (abrir menú, leer, cerrar) es ~1,15 s
-  y el resto es el hueco.
-- `maxPages` 3 corta la paginación profunda. `diamond` aparece en la página 42:
-  en throughput **se corta y no entra al snapshot**. Lo mismo `emerald`, `iron` y
-  `redstone` si se comportan igual. Para recuperarlos hay que correr una sesión
-  con `maxPages` 200 y una lista corta.
-- El tope de páginas por sesión tiene que subir a 2000. Con 400 el escaneo se
-  cortaría en el ítem ~360.
+  a un bot que este proyecto puede producir.
+- El hueco de 1-3 s no hace más humano el patrón; solo evita el metrónomo.
+- `pageDelay` no baja de 350 ms: por debajo, la página siguiente puede no haber
+  cargado cuando se lee, y el escaneo la toma como "no hay más páginas". Eso
+  pierde datos en silencio, que es peor que tardar.
 
-**Lo que no cambia:** un hueco de 1-3 s sigue siendo un hueco. El sesgo evita el
-metrónomo, no la estadística. La densidad es la que expone, y acá la densidad es
-deliberadamente alta porque el objetivo es la cobertura.
-
-Ojo con los ítems profundos: `diamond` son ~42 clics de "Next page". A 150-350 ms
-eso son ~10 s de clics seguidos. Subir `pageDelayMinMillis` y
+Ojo con los ítems profundos: `diamond` son ~42 clics de "Next page". A 350-900 ms
+eso son ~25 s de clics seguidos. Subir `pageDelayMinMillis` y
 `pageDelayMaxMillis` es la palanca para bajar esa ráfaga, a costa de tiempo.
 
 `scan-cursor.txt`, al lado de `scan.json`, guarda el índice del próximo ítem.
@@ -152,18 +149,22 @@ Así una sesión que no cubre la lista entera no deja el final sin escanear: la
 siguiente arranca donde terminó la anterior. Borralo si querés volver a empezar
 por el primer ítem de la lista.
 
-### Sobre los 600 ítems
+### Sobre la lista de ítems
 
-El `scan.json` vivo tiene **103 ítems**, no 600: son los únicos ids que aparecen
-en las 311 capturas reales del libro de órdenes de este servidor. No hay una
-lista de 600 con evidencia. Escanear ids de vanilla que el servidor no opera
-gasta el mismo presupuesto por ítem y devuelve un menú vacío.
+DonutProfit compara el costo de las **materias primas** contra el valor del ítem
+**crafteado**. Por eso la lista tiene que traer las dos puntas: minerales, palos,
+lingotes y también las armaduras, herramientas y bloques que salen de ellos. Es
+una lista grande por definición, y no sale de las capturas: sale del grafo de
+recetas.
 
-La forma de llegar a 600 sin inventar nada es leer el libro **sin búsqueda**, una
-sola vez: el botón `Orders` (slot 49) abre la lista completa y cada página trae
-45 órdenes. Eso revela todos los ítems que existen y sus precios en una pasada,
-sin mandar ni un comando. Está sin implementar porque falta medir cuántas páginas
-tiene ese libro; ver `STATE.md`.
+El `scan.json` vivo tiene **103 ítems provisionales**, los que aparecieron en 311
+capturas reales (incluye ítems custom del servidor como `diamond_spear`). Es un
+seed, no la lista final: el owner la va a definir con DeepSeek. Reemplazar el
+array `items` alcanza, no hace falta tocar código.
+
+**Lo que no se hace:** leer el libro sin búsqueda. La lista sin argumento ordena
+por precio descendente y las materias primas baratas quedan a cientos de páginas;
+además no es `Most Per Item`. Ya se descartó como vía.
 
 ## Cuándo se corta solo
 
