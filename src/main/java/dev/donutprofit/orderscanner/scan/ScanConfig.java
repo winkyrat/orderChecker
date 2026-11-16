@@ -10,9 +10,10 @@ import java.util.Set;
  * Settings for the autonomous scan, loaded from {@code scan.json}.
  *
  * <p>Defaults are the "fast" preset the owner picked on 2026-11-16: one search
- * every 5-9 seconds, an occasional long pause, and a hard stop after 40 items or
- * 30 minutes. Nothing here is a guarantee of undetectability; the caps exist to
- * limit exposure, not to hide it.
+ * every 5-12 seconds, skewed towards the short end, with a 3% chance of a one to
+ * two minute break, and a hard stop after 40 items or 30 minutes. Nothing here
+ * is a guarantee of undetectability; the caps exist to limit exposure, not to
+ * hide it.
  *
  * <p>The order list is always read with the "Most Per Item" filter, sorted by
  * price. A cheap item can sit dozens of pages below the expensive gear that
@@ -102,10 +103,10 @@ public record ScanConfig(
         return new ScanConfig(
                 CATALOGUE_ITEMS,
                 5,
-                9,
-                5,
+                12,
+                3,
+                60,
                 120,
-                300,
                 40,
                 30,
                 200,

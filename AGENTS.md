@@ -133,9 +133,10 @@ Nunca dejar dos jars del mod en `mods/`: Fabric falla por mod id duplicado.
   esa página ya trae sus órdenes más caras. No se lee la banda completa.
 - Topes: `maxPages` 200 (guarda anti-bucle), `maxPagesPerSession` 400 (control
   real de clics), 40 búsquedas y 30 min por sesión.
-- Cadencia: **5-9 s** entre búsquedas (decisión del owner, 2026-11-16; antes
-  12-35 s). Es ~7-12 comandos por minuto: más rápido, y por lo tanto más
-  expuesto. Si otro agente la sube o baja, anotarlo en `LOG.md`.
+- Cadencia: **5-12 s** entre búsquedas, con sesgo al extremo corto y 3 % de
+  pausa de 1-2 min (decisión del owner, 2026-11-16; antes 12-35 s uniforme). Es
+  ~5-9 comandos por minuto: más rápido, y por lo tanto más expuesto. Si otro
+  agente la cambia, anotarlo en `LOG.md`.
 - `scan-cursor.txt` guarda el próximo índice para cubrir los 60 ítems entre
   sesiones.
 - Escaneo automático: solo export compacto + `orders.json`. Dump crudo solo F8.

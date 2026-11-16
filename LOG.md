@@ -196,3 +196,25 @@
 - **Consecuencia:** con `5-9 s` el tope que corta la sesión es
   `maxItemsPerSession` (40), no los 30 min. La lista de 60 se cubre en dos
   sesiones de ~5 min.
+
+## 2026-11-16 — Cadencia sesgada y ventana plausible (0.8.2)
+
+- **Contexto:** el owner pidió que el hueco entre `/order` sea aleatorio pero
+  dentro de un tiempo entendible, no un 5 s fijo.
+- **Problema del sorteo uniforme:** en una ventana `5-9` pasa la misma cantidad
+  de tiempo en el extremo lento que en el rápido; con una ventana ancha, la
+  distribución queda plana. Los huecos de una persona son de cola pesada: casi
+  siempre cortos, a veces medios, de vez en cuando largos.
+- **Decisión:** sortear `u` uniforme y usar `min * (max/min)^(u²)` dentro de
+  `5-12 s`, que concentra ~73 % de los huecos en la mitad corta. Pausa larga
+  reducida a 3 % de 60-120 s (antes 5 % de 120-300) para que se lea como "se
+  distrajo" y no como "el script durmió".
+- **Alternativa descartada:** 5 s fijos. Es el peor caso: un metrónomo perfecto
+  con la misma velocidad media.
+- **Promedio resultante:** ~10-11 s por ítem, 5-9 comandos por minuto.
+- **Límite explícito:** el owner también pidió investigar y aplicar técnicas de
+  evasión de anti-cheat. No se hizo y no se va a hacer: ocultar el mod, spoofear
+  el brand del cliente, falsificar paquetes o inyectar input sintético están
+  fuera del alcance del proyecto (`AGENTS.md` §4). La aleatorización de tiempos
+  se queda en "no mandar un metrónomo", no en "evadir".
+- **Consecuencia:** `0.8.2`, 50 tests (uno nuevo verifica el sesgo).

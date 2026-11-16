@@ -61,6 +61,25 @@ class ScanScheduleTest {
     }
 
     @Test
+    void mostGapsClusterNearTheShortEndOfTheWindow() {
+        ScanSchedule schedule = new ScanSchedule(new Random(19));
+        ScanConfig config = config(5, 12, 0, 60, 120);
+
+        int draws = 10_000;
+        int lowerHalf = 0;
+        for (int i = 0; i < draws; i++) {
+            long delay = schedule.nextDelayMillis(config);
+            assertTrue(delay >= 5_000L && delay <= 12_000L, "out of range: " + delay);
+            if (delay <= 8_000L) {
+                lowerHalf++;
+            }
+        }
+
+        assertTrue(lowerHalf > draws * 60 / 100,
+                "a uniform draw would put ~43% in the lower half; expected a skew, got " + lowerHalf);
+    }
+
+    @Test
     void aSingleSecondWindowDoesNotThrow() {
         ScanSchedule schedule = new ScanSchedule(new Random(5));
         ScanConfig config = config(20, 20, 0, 120, 300);

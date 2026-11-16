@@ -34,8 +34,8 @@
 ## Fase 3 — Escaneo autónomo (F9)
 
 - [x] Máquina de estados: comando → espera → captura → página → cierre → pausa.
-- [x] Cadencia irregular: 5-9 s (0.8.1; antes 12-35 s), 5 % de pausa larga de
-      120-300 s.
+- [x] Cadencia irregular: 5-12 s con sesgo al extremo corto (0.8.2; antes
+      12-35 s uniforme), 3 % de pausa de 1-2 min.
 - [x] Topes: 40 búsquedas / 30 min por sesión.
 - [x] Auto-stop: 3 fallos, otro menú, movimiento/ataque/uso, pérdida de foco,
       salida del mundo.

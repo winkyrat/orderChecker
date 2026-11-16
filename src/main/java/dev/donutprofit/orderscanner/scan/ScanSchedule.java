@@ -5,11 +5,11 @@ import java.util.Random;
 /**
  * Decides how long to wait between actions.
  *
- * <p>Delays are drawn uniformly inside the configured window and, with the
- * configured probability, replaced by a long pause. That produces an uneven
- * cadence instead of a metronome. It is not an anti-detection measure and it is
- * not sold as one: it only avoids a perfectly regular pattern, which is the
- * cheapest thing a server can flag.
+ * <p>Delays are drawn inside the configured window with a skew towards the
+ * short end and, with the configured probability, replaced by a long pause.
+ * That produces an uneven cadence instead of a metronome. It is not an
+ * anti-detection measure and it is not sold as one: it only avoids a perfectly
+ * regular pattern, which is the cheapest thing a server can flag.
  */
 public final class ScanSchedule {
     private final Random random;
@@ -24,7 +24,30 @@ public final class ScanSchedule {
                 && random.nextInt(100) < config.longPauseChancePercent()) {
             return between(config.longPauseMinSeconds(), config.longPauseMaxSeconds()) * 1000L;
         }
-        return between(config.minDelaySeconds(), config.maxDelaySeconds()) * 1000L;
+        return skewedSeconds(config.minDelaySeconds(), config.maxDelaySeconds()) * 1000L;
+    }
+
+    /**
+     * Draws a gap that clusters near the short end of the window and thins out
+     * towards the long end.
+     *
+     * <p>A uniform draw spends as much time at the slow end as at the fast one,
+     * which reads like a machine pacing itself. Someone reading prices goes
+     * mostly fast, sometimes slower, and every so often stops for a while.
+     * Squaring the uniform draw skews it that way while staying inside the
+     * configured window.
+     *
+     * <p>This is still a random process with a fixed lower bound: it does not
+     * make the scan hard to tell apart from a person, it only stops the gaps
+     * from being flat.
+     */
+    private int skewedSeconds(int minimum, int maximum) {
+        if (maximum <= minimum || minimum <= 0) {
+            return Math.max(minimum, 0);
+        }
+        double ratio = (double) maximum / minimum;
+        double draw = random.nextDouble();
+        return (int) Math.round(minimum * Math.pow(ratio, draw * draw));
     }
 
     /** Wait after clicking "Next page", before reading the new contents. */

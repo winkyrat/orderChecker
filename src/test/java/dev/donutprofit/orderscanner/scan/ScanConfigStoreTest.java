@@ -24,7 +24,7 @@ class ScanConfigStoreTest {
         assertTrue(Files.exists(file), "the owner must be able to edit the settings");
         assertEquals(ScanConfig.CATALOGUE_ITEMS.size(), config.items().size());
         assertEquals(5, config.minDelaySeconds());
-        assertEquals(9, config.maxDelaySeconds());
+        assertEquals(12, config.maxDelaySeconds());
         assertEquals(200, config.maxPages());
         assertEquals(400, config.maxPagesPerSession());
         assertTrue(Files.readString(file).contains("\"items\""));
@@ -35,7 +35,7 @@ class ScanConfigStoreTest {
         ScanConfig config = ScanConfigStore.read("{\"minDelaySeconds\": 4}");
 
         assertEquals(4, config.minDelaySeconds());
-        assertEquals(9, config.maxDelaySeconds(), "untouched fields keep the default");
+        assertEquals(12, config.maxDelaySeconds(), "untouched fields keep the default");
         assertEquals(ScanConfig.CATALOGUE_ITEMS.size(), config.items().size());
     }
 

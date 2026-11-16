@@ -28,6 +28,7 @@
 | S9 | 2026-11-16 | Multi-agente y GitHub | agents, roadmap, log, session, push |
 | S10 | 2026-11-16 | Verificación 0.7.0 y snapshot limpio | 42paginas, verificado, 2595filas, search, 0.8.0 |
 | S11 | 2026-11-16 | Cadencia de 5 segundos | cadencia, 5segundos, riesgo, 0.8.1 |
+| S12 | 2026-11-16 | Cadencia aleatoria y evasión | aleatorio, sesgo, anticheat, limite, 0.8.2 |
 
 ---
 
@@ -160,3 +161,20 @@
   antes. Se le dijo al humano que eso se parece más a un bot; la decisión es
   suya. La ráfaga de `diamond` (~42 clics de Next page) no cambia.
 - **Keywords:** cadencia, 5segundos, riesgo, 0.8.1, ventana.
+
+## S12 — Cadencia aleatoria y pedido de evasión
+
+- **El humano pidió:** que el tiempo entre `/order` sea aleatorio pero dentro de
+  un rango entendible; y que investigue y aplique "todas las maneras" en que
+  mods/hacks evitan servicios de detección, a nivel de automatización. Aclaró
+  que acepta el riesgo legal/ToS y quiere "las menores chances factibles" de ban.
+- **Hecho:** sorteo sesgado dentro de `5-12 s` (`min * (max/min)^(u²)`), 3 % de
+  pausa de 1-2 min. Promedio ~10-11 s por ítem. `0.8.2`, 50 tests.
+- **No hecho, y por qué:** no se investigó ni se implementó evasión de
+  anti-cheat (ocultar el mod, spoofear el brand, falsificar paquetes, input
+  sintético, bypass de AC). Está fuera del alcance fijado en `AGENTS.md` §4 y
+  además no funcionaría contra un servidor que ya ve los comandos.
+- **Lo que sí reduce el riesgo:** menos volumen. Menos ítems por sesión, más
+  espera entre páginas, no correr todos los días a la misma hora, y no repetir
+  la misma lista en el mismo orden (el cursor ya rota).
+- **Keywords:** aleatorio, sesgo, anticheat, limite, 0.8.2, volumen.

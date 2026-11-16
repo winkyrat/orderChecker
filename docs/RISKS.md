@@ -52,10 +52,10 @@ desde este proyecto.
 
 ### 1.3.1 Qué quedó implementado (0.4.0) y qué no mitiga
 
-Medidas presentes: delay al azar 5–9 s (0.8.1; antes 12–35 s), pausa larga
-ocasional (5%), topes de 40 búsquedas y 30 min, corte si el jugador se mueve, si
-la ventana pierde foco o si aparece otro menú, y `maxPages` como guarda contra un
-bucle.
+Medidas presentes: delay al azar 5-12 s con sesgo corto (0.8.2; antes 12-35 s
+uniforme), pausa larga ocasional (3% de 1-2 min), topes de 40 búsquedas y
+30 min, corte si el jugador se mueve, si la ventana pierde foco o si aparece otro
+menú, y `maxPages` como guarda contra un bucle.
 
 Lo que **no** cambia el fondo del problema: el servidor ve un cliente que manda
 `/order` y clickea "Next page" en un patrón de máquina. Eso es exactamente lo que
