@@ -20,13 +20,28 @@ Perfil aislado, para no mezclar Wurst con DonutSMP:
 | --- | --- |
 | Perfil del launcher | `Donut Scanner 1.21.11` → versión `fabric-loader-0.20.1-1.21.11` |
 | Carpeta de juego | `%APPDATA%\.minecraft-donutscanner\` |
-| Mods | `donut-order-scanner-0.4.0.jar`, `fabric-api-0.141.6+1.21.11.jar` |
+| Mods | `donut-order-scanner-0.4.1.jar`, `fabric-api-0.141.6+1.21.11.jar` |
 | Dumps y exports | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\dumps\` |
 | Config del escaneo | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\scan.json` |
 | Fabric Loader | `0.20.1` (instalado con installer 1.1.2 en `.minecraft/versions`) |
 
-> `0.4.0` instalado el 2026-11-16. Nunca dejar dos jars del mod en `mods/`:
+> `0.4.1` instalado el 2026-11-16. Nunca dejar dos jars del mod en `mods/`:
 > Fabric falla por mod id duplicado.
+
+### Incidente 0.4.0 (2026-11-16)
+
+`0.4.0` crasheaba al arrancar:
+
+```
+java.lang.IllegalArgumentException: Category 'donut_order_scanner:main' is already registered.
+```
+
+Causa: `KeyMapping.Category.register(...)` se llamaba una vez por keybind (F8 y
+F9) y en 1.21.11 registrar la misma categoría dos veces lanza. Fix en `0.4.1`:
+una sola categoría compartida. Verificado con `gradlew runClient`: el cliente
+carga `donut_order_scanner 0.4.1` y llega al menú sin error de entrypoint.
+Lección: los cambios en el entrypoint cliente se prueban con `runClient` antes
+de instalar.
 
 - Se copiaron `options.txt`, `optionsof.txt`, `servers.dat` y `servers.dat_old`
   al game dir para no perder ajustes ni servidores.

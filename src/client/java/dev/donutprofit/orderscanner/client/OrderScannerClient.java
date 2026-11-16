@@ -26,17 +26,22 @@ public final class OrderScannerClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        // One category instance for both keys: registering it twice throws
+        // "Category ... is already registered" and kills the client at startup.
+        KeyMapping.Category category = KeyMapping.Category.register(
+                Identifier.fromNamespaceAndPath(MOD_ID, "main"));
+
         dumpKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
                 "key.donut_order_scanner.dump",
                 InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_F8,
-                KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "main"))));
+                category));
 
         scanKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
                 "key.donut_order_scanner.scan",
                 InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_F9,
-                KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "main"))));
+                category));
 
         // Vanilla only processes key mappings when no screen is open, but the
         // menus worth dumping are screens. Listen on the screen instead and
