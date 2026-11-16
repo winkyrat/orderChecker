@@ -361,21 +361,24 @@ npx tsx scripts/load-orders.ts "<ruta>\orders.json"
    juego, borrar `donut-order-scanner-0.10.0.jar` de `mods\`, copiar
    `donut-order-scanner-0.10.1.jar`. Es la única versión que reintenta un menú
    vacío en página 1.
-2. **Validar el `orders.json` de la corrida 0.10.0** contra DonutProfit
-   (`npx tsx scripts/load-orders.ts`, dry run). Revisar dos cosas: que cada ítem
-   escaneado directo tenga solo las filas de su escaneo (sin incidentales
-   colgadas) y que el dry run no liste ítems fuera del catálogo que vayan a
-   romper la FK en `--commit`. Ya se vio que `glass_bottle`,
-   `gray_stained_glass` y `purple_stained_glass` llegaron solo como incidentales
-   de `glass`, y `netherite_boots` tiene 146 filas incidentales de `feather`.
-3. **Ingerir la lista definitiva** cuando el owner la entregue (materias primas +
+2. **Integración con DonutProfit: hecha (2026-11-16).** El `orders.json` de la
+   corrida 0.10.0 se validó y se cargó en Neon con `pnpm sync-orders --commit`:
+   2.632 órdenes / 106 ítems, 2.439 filas nuevas y 193 duplicadas por
+   `dedupe_key`. `ensureItems` crea los ítems antes de insertar, así que la FK
+   ya no es un bloqueo. La web lee `source: manual` y corre en modo solo-órdenes
+   (`pricingBasis: "orders"`): 0 flips ejecutables, 3 crafteos accionables.
+3. **Decidir si el mod captura listings (asks).** Sin asks, el costo de
+   materiales se estima con la mejor bid y el profit de crafteo es un techo.
+   Opciones: extender el mod para leer el Auction House, o aceptar la
+   estimación etiquetada. Ver `../oreboard/docs/OPEN_QUESTIONS.md` B1b.
+4. **Ingerir la lista definitiva** cuando el owner la entregue (materias primas +
    ítems crafteados, del grafo de recetas). Solo hay que reemplazar el array
    `items` de `scan.json`; no hace falta recompilar.
-4. **Investigar el filtro del menú (slot 47).** Es la única palanca conocida para
+5. **Investigar el filtro del menú (slot 47).** Es la única palanca conocida para
    acortar la paginación de las materias primas: si filtra por categoría, un
    `diamond` con menos coincidencias podría aparecer en 5 páginas en vez de 42.
    Requiere un F8 con el filtro abierto para ver qué opciones tiene.
-5. Si el cliente no entra con 1.21.11: recompilar para 26.3 (Fabric API
+6. Si el cliente no entra con 1.21.11: recompilar para 26.3 (Fabric API
    `0.166.2+26.3`, Java 25, mappings de Mojang). El código es portable.
 
 ## Bloqueos

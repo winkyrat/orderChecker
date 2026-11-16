@@ -33,6 +33,7 @@
 | S14 | 2026-11-16 | Corrección: crafteo, no barrido | crafteo, recetas, lista, maxPages, correccion |
 | S15 | 2026-11-16 | Filas incidentales | incidental, fallback, merge, pagina1, 0.10.0 |
 | S16 | 2026-11-16 | Revisión de la corrida 0.10.0 | corrida, 248s, 2632filas, lore, menu-vacio, 0.10.1 |
+| S17 | 2026-11-16 | Datos reales en DonutProfit | neon, sync-orders, orders-only, bids, pricingBasis, source-isolation |
 
 ---
 
@@ -251,3 +252,20 @@
   abre vacía. Construido y testeado (53 tests); pendiente de instalar porque el
   juego estaba abierto y bloqueaba el jar viejo.
 - **Keywords:** corrida, 248s, 2632filas, lore, menu-vacio, 0.10.1.
+
+## S17 — Datos reales en DonutProfit
+
+- **El humano pidió:** conectar la base del escáner con DonutProfit y descartar
+  los valores ficticios; la API oficial no funciona y el mod es la fuente.
+- **Decisión:** transporte local `pnpm sync-orders` (dry run por defecto,
+  `--commit`, hash skip) que escribe directo a Neon desde la máquina del owner.
+  Sin endpoint HTTP ni token nuevo, para no abrir una superficie de inyección.
+- **Resultado:** 2.632 órdenes / 106 ítems cargadas; 2.439 filas nuevas y 193
+  duplicadas por `dedupe_key`. `ensureItems` crea los ítems antes de insertar,
+  así que la FK dejó de ser un bloqueo.
+- **Efecto en la web:** `source: manual`, `pricingBasis: orders`; 0 flips
+  ejecutables (faltan asks) y 3 crafteos accionables con costo estimado por bid.
+- **Pendiente:** decidir si el mod captura listings del Auction House para
+  reemplazar la estimación por bids. Instalar `0.10.1` sigue pendiente.
+- **Keywords:** neon, sync-orders, watch-orders, orders-only, bids, asks,
+  pricingBasis, source-isolation.
