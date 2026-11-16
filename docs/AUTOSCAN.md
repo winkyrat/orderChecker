@@ -166,6 +166,30 @@ array `items` alcanza, no hace falta tocar código.
 por precio descendente y las materias primas baratas quedan a cientos de páginas;
 además no es `Most Per Item`. Ya se descartó como vía.
 
+### Filas incidentales (0.10.0)
+
+Una búsqueda profunda muestra decenas de páginas de otros ítems. Esas filas se
+guardan: son órdenes reales y le dan un nivel de precio a un ítem que todavía no
+se buscó. El costo es cero, porque la página ya se leyó.
+
+La regla que las hace seguras:
+
+| Situación | Qué pasa |
+| --- | --- |
+| Ítem nunca escaneado directo | Sus filas incidentales se guardan. |
+| Ítem escaneado directo | Sus filas incidentales se **descartan** y queda solo el escaneo real. |
+| Dos búsquedas muestran la misma orden | Se guarda una sola, por `(itemId, unitPrice, quantityRemaining)`. |
+| Página 1 de una nueva búsqueda | Borra la observación anterior de esa búsqueda. Página 2+ acumula. |
+
+Por qué importa la última fila: una búsqueda profunda captura página por página.
+Si el borrado se disparara en cada página, la 2 borraría lo que guardó la 1 y el
+snapshot quedaría con una sola página.
+
+**Antes de `--commit` en DonutProfit:** las filas incidentales pueden traer ítems
+que no están en el catálogo, y `orders.itemId` tiene FK a `items`. El dry run
+(`npx tsx scripts/load-orders.ts`) los lista; si faltan, hay que sembrarlos o el
+insert falla.
+
 ## Cuándo se corta solo
 
 | Situación | Mensaje |

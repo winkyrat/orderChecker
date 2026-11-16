@@ -31,6 +31,7 @@
 | S12 | 2026-11-16 | Cadencia aleatoria y evasión | aleatorio, sesgo, anticheat, limite, 0.8.2 |
 | S13 | 2026-11-16 | 600 ítems en 30 minutos | throughput, 600items, presupuesto, libro, 0.9.0 |
 | S14 | 2026-11-16 | Corrección: crafteo, no barrido | crafteo, recetas, lista, maxPages, correccion |
+| S15 | 2026-11-16 | Filas incidentales | incidental, fallback, merge, pagina1, 0.10.0 |
 
 ---
 
@@ -216,3 +217,18 @@
   grafo de recetas). Los 103 son un seed. Además, investigar el filtro del menú
   (slot 47), que es la única palanca para acortar la paginación profunda.
 - **Keywords:** crafteo, recetas, lista, maxPages, correccion.
+
+## S15 — Aprovechar los ítems que aparecen en el camino
+
+- **El humano propuso:** si buscás `diamond` y sale `diamond_spear`, guardar
+  también ese valor. Más información, mismo costo.
+- **Hecho en `0.10.0`:** se guarda la página completa. Las filas de otros ítems
+  son un **fallback**: se descartan en cuanto ese ítem se escanea directo, y su
+  identidad es `(itemId, unitPrice, quantityRemaining)` para que dos búsquedas no
+  las dupliquen.
+- **Bug evitado:** el borrado de la observación anterior se dispara solo en
+  página 1. En cada página, la 2 habría borrado lo de la 1.
+- **Aviso:** `orders.itemId` tiene FK a `items` en DonutProfit. Las filas
+  incidentales pueden traer ítems sin sembrar; el dry run los lista y `--commit`
+  falla si faltan.
+- **Keywords:** incidental, fallback, merge, pagina-1, 0.10.0.

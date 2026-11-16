@@ -270,3 +270,25 @@
   correcta es ítems por sesión, medida sobre la lista real.
 - **Consecuencia:** solo cambia `scan.json` (sin recompilar) y la documentación.
   La lista de 103 es un seed provisional; la definitiva la aporta el owner.
+
+## 2026-11-16 — Filas incidentales como fallback (0.10.0)
+
+- **Contexto:** el owner propuso que una búsqueda aproveche los ítems que
+  aparecen en el camino (`/order diamond` muestra `diamond_spear`) y guarde su
+  valor. Más información, mismo costo: la página ya se leyó.
+- **Riesgo:** es exactamente lo que motivó el cambio de 0.8.0. Guardar filas de
+  otros ítems infló la escalera de `diamond_sword` con 38 páginas que no eran
+  suyas, y una búsqueda real después no las limpiaba.
+- **Decisión:** se guardan, pero como **fallback**. Una fila incidental
+  (`itemId != search`) se descarta en cuanto el ítem tiene escaneo directo. Su
+  identidad es `(itemId, unitPrice, quantityRemaining)`, así que dos búsquedas
+  que la muestran no la duplican. Nunca puede competir con un escaneo real.
+- **Bug evitado en el diseño:** el borrado de la observación anterior se dispara
+  solo en **página 1**. Si se disparara en cada página, la página 2 borraría lo
+  que guardó la 1, porque una búsqueda profunda exporta página por página.
+- **Verificado en el consumidor:** `orderDedupeKey` incluye
+  `itemId|side|unitPrice|quantityRemaining|observedAt`, así que una copia
+  repetida se colapsa al insertar. Pero `orders.itemId` tiene FK a `items`: las
+  filas incidentales pueden traer ítems sin sembrar y `--commit` fallaría.
+- **Consecuencia:** `0.10.0`, 53 tests (3 nuevos: incidental guardada, escaneo
+  directo la retira, dos búsquedas no duplican).

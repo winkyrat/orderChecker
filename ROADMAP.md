@@ -49,6 +49,8 @@
 - [x] Reporte honesto cuando un tope corta la búsqueda antes de encontrar el ítem.
 - [x] `scan-cursor.txt` para rotar la lista entre sesiones.
 - [x] Seed de 103 ítems observados en capturas reales (0.9.0), provisional.
+- [x] Filas incidentales (0.10.0): la página completa se guarda; las filas de
+      otros ítems valen como fallback y se retiran al escanear ese ítem directo.
 - [ ] **Lista definitiva** desde el grafo de recetas (materias primas + ítems
       crafteados). La aporta el owner; es el bloqueo B3.
 - [ ] Investigar el filtro del menú (slot 47) para acortar la paginación de las

@@ -33,6 +33,12 @@ class OrderExportStoreTest {
                 itemId, "buy", price, remaining, observedAt, itemId, page, slot, false, itemId);
     }
 
+    private static OrderExport.Row incidentalRow(String itemId, String search, int page, int slot,
+                                                 long price, long remaining, String observedAt) {
+        return new OrderExport.Row(
+                itemId, "buy", price, remaining, observedAt, itemId, page, slot, false, search);
+    }
+
     @Test
     void keepsEveryRowOfTheSameItemInsteadOfOnlyTheBestPrice() throws Exception {
         Path snapshot = OrderExportStore.mergeIntoSnapshot(tempDir, export(1, "2026-11-13T00:00:00Z",
@@ -96,20 +102,41 @@ class OrderExportStoreTest {
     }
 
     @Test
-    void aSearchReplacesItsOwnRowsOnEveryPage() throws Exception {
+    void aNewSearchReplacesThePreviousObservationOfThatItem() throws Exception {
+        // First run: the item ended up on page 42.
+        OrderExportStore.mergeIntoSnapshot(tempDir, export(1, "2026-11-16T08:00:00Z",
+                incidentalRow("minecraft:diamond_sword", "minecraft:diamond",
+                        1, 0, 900000, 2, "2026-11-16T08:00:00Z")));
         OrderExportStore.mergeIntoSnapshot(tempDir, export(42, "2026-11-16T08:25:31Z",
-                searchedRow("minecraft:diamond", 42, 41, 11300, 1959, "2026-11-16T08:25:31Z"),
-                searchedRow("minecraft:diamond", 42, 44, 11200, 1700, "2026-11-16T08:25:31Z")));
+                searchedRow("minecraft:diamond", 42, 41, 11300, 1959, "2026-11-16T08:25:31Z")));
 
-        // The item moved up one page: the old page 42 must not survive.
+        // Second run: page 1 clears the previous run, and the item is now on 41.
+        OrderExportStore.mergeIntoSnapshot(tempDir, export(1, "2026-11-16T09:00:00Z",
+                incidentalRow("minecraft:diamond_sword", "minecraft:diamond",
+                        1, 0, 950000, 2, "2026-11-16T09:00:00Z")));
         Path snapshot = OrderExportStore.mergeIntoSnapshot(tempDir, export(41, "2026-11-16T09:10:00Z",
                 searchedRow("minecraft:diamond", 41, 3, 12000, 900, "2026-11-16T09:10:00Z")));
 
         OrderExport merged = OrderExportStore.read(snapshot);
         assertNotNull(merged);
-        assertEquals(1, merged.orders().size(), "one search, one observation, not a growing pile of pages");
-        assertEquals(41, merged.orders().get(0).page());
-        assertEquals(12000L, merged.orders().get(0).unitPrice());
+        assertEquals(2, merged.orders().size(), "one search, one observation, not a growing pile of pages");
+        assertEquals(41, find(merged, "minecraft:diamond", 41).page());
+        assertEquals(950000L, find(merged, "minecraft:diamond_sword", 1).unitPrice(),
+                "the by-product is also refreshed, not left at the old price");
+    }
+
+    @Test
+    void thePagesOfOneSearchAccumulate() throws Exception {
+        OrderExportStore.mergeIntoSnapshot(tempDir, export(1, "2026-11-16T08:00:00Z",
+                incidentalRow("minecraft:diamond_sword", "minecraft:diamond",
+                        1, 0, 1600000, 5, "2026-11-16T08:00:00Z")));
+        Path snapshot = OrderExportStore.mergeIntoSnapshot(tempDir, export(2, "2026-11-16T08:00:05Z",
+                incidentalRow("minecraft:diamond_helmet", "minecraft:diamond",
+                        2, 1, 1400000, 3, "2026-11-16T08:00:05Z")));
+
+        OrderExport merged = OrderExportStore.read(snapshot);
+        assertNotNull(merged);
+        assertEquals(2, merged.orders().size(), "a deep search keeps what every page it read showed");
     }
 
     @Test
@@ -128,27 +155,66 @@ class OrderExportStoreTest {
     }
 
     @Test
-    void onlyForKeepsTheSearchedItemAndTagsIt() throws Exception {
+    void forSearchKeepsTheWholePageAndTagsEveryRow() {
         OrderExport page = export(42, "2026-11-16T08:25:31Z",
-                searchedRow("minecraft:diamond", 42, 41, 11300, 1959, "2026-11-16T08:25:31Z"),
+                row("minecraft:diamond", 42, 41, 11300, 1959, "2026-11-16T08:25:31Z"),
                 row("minecraft:diamond_sword", 42, 0, 12100, 5, "2026-11-16T08:25:31Z"),
                 row("minecraft:diamond_helmet", 42, 2, 14000, 8, "2026-11-16T08:25:31Z"));
 
-        OrderExport stored = page.onlyFor("minecraft:diamond");
+        OrderExport stored = page.forSearch("minecraft:diamond");
 
-        assertEquals(1, stored.orders().size(), "paging towards an item must not store the other items");
-        OrderExport.Row kept = stored.orders().get(0);
-        assertEquals("minecraft:diamond", kept.itemId());
-        assertEquals("minecraft:diamond", kept.search());
-        assertEquals(42, kept.page());
+        assertEquals(3, stored.orders().size(), "by-products are kept, not dropped");
+        assertTrue(stored.orders().stream()
+                .allMatch(row -> "minecraft:diamond".equals(row.search())));
     }
 
     @Test
-    void onlyForIsEmptyWhenTheItemIsNotOnThePage() {
-        OrderExport page = export(1, "2026-11-16T08:25:31Z",
-                row("minecraft:diamond_sword", 1, 0, 1600000, 5, "2026-11-16T08:25:31Z"));
+    void aByProductRowIsKeptForTheItemItBelongsTo() throws Exception {
+        Path snapshot = OrderExportStore.mergeIntoSnapshot(tempDir, export(42, "2026-11-16T08:25:31Z",
+                searchedRow("minecraft:diamond", 42, 41, 11300, 1959, "2026-11-16T08:25:31Z"),
+                incidentalRow("minecraft:diamond_sword", "minecraft:diamond",
+                        42, 0, 12100, 5, "2026-11-16T08:25:31Z")));
 
-        assertTrue(page.onlyFor("minecraft:diamond").isEmpty());
+        OrderExport merged = OrderExportStore.read(snapshot);
+        assertNotNull(merged);
+        assertEquals(2, merged.orders().size(), "the by-product is a real observation too");
+        assertEquals(12100L, find(merged, "minecraft:diamond_sword", 42).unitPrice());
+    }
+
+    @Test
+    void aDirectScanRetiresTheByProductsOfThatItem() throws Exception {
+        OrderExportStore.mergeIntoSnapshot(tempDir, export(42, "2026-11-16T08:25:31Z",
+                searchedRow("minecraft:diamond", 42, 41, 11300, 1959, "2026-11-16T08:25:31Z"),
+                incidentalRow("minecraft:diamond_sword", "minecraft:diamond",
+                        42, 0, 12100, 5, "2026-11-16T08:25:31Z")));
+
+        Path snapshot = OrderExportStore.mergeIntoSnapshot(tempDir, export(1, "2026-11-16T09:10:00Z",
+                searchedRow("minecraft:diamond_sword", 1, 7, 1600000, 5, "2026-11-16T09:10:00Z")));
+
+        OrderExport merged = OrderExportStore.read(snapshot);
+        assertNotNull(merged);
+        assertEquals(2, merged.orders().size());
+        OrderExport.Row sword = merged.orders().stream()
+                .filter(row -> row.itemId().equals("minecraft:diamond_sword"))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(1600000L, sword.unitPrice(), "the direct scan replaces the by-product");
+        assertEquals(1, sword.page());
+    }
+
+    @Test
+    void twoSearchesSurfacingTheSameOrderDoNotDuplicateIt() throws Exception {
+        OrderExportStore.mergeIntoSnapshot(tempDir, export(5, "2026-11-16T08:00:00Z",
+                incidentalRow("minecraft:diamond_sword", "minecraft:diamond",
+                        5, 0, 12100, 5, "2026-11-16T08:00:00Z")));
+
+        Path snapshot = OrderExportStore.mergeIntoSnapshot(tempDir, export(2, "2026-11-16T08:10:00Z",
+                incidentalRow("minecraft:diamond_sword", "minecraft:diamond_block",
+                        2, 3, 12100, 5, "2026-11-16T08:10:00Z")));
+
+        OrderExport merged = OrderExportStore.read(snapshot);
+        assertNotNull(merged);
+        assertEquals(1, merged.orders().size(), "the same order seen by two searches is one row");
     }
 
     private static OrderExport.Row find(OrderExport export, String itemId, int page) {

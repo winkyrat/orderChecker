@@ -87,31 +87,29 @@ public record OrderExport(
     }
 
     /**
-     * Keeps only the rows of the item that was searched and stamps them with the
-     * search that produced them.
+     * Stamps every row with the search that produced it, keeping the whole
+     * page.
      *
      * <p>Paging towards a cheap item walks dozens of pages of other items. Those
-     * rows are real, but they are a slice of somebody else's price band at a page
-     * that means nothing for that item's own search: keeping them inflates its
-     * demand ladder and leaves stale rows behind once the item is scanned
-     * directly. The autonomous scan therefore stores only the item it asked for.
+     * rows are real observations, so they are kept: an item that shows up by
+     * accident still gets a price level it did not have. The merge gives them
+     * lower priority than a real scan of that item, so they can never inflate a
+     * ladder once the item is scanned on its own.
      */
-    public OrderExport onlyFor(String itemId) {
-        List<Row> kept = new ArrayList<>();
+    public OrderExport forSearch(String searchedItemId) {
+        List<Row> kept = new ArrayList<>(orders.size());
         for (Row row : orders) {
-            if (row.itemId().equals(itemId)) {
-                kept.add(new Row(
-                        row.itemId(),
-                        row.side(),
-                        row.unitPrice(),
-                        row.quantityRemaining(),
-                        row.observedAt(),
-                        row.displayName(),
-                        row.page(),
-                        row.slot(),
-                        row.verified(),
-                        itemId));
-            }
+            kept.add(new Row(
+                    row.itemId(),
+                    row.side(),
+                    row.unitPrice(),
+                    row.quantityRemaining(),
+                    row.observedAt(),
+                    row.displayName(),
+                    row.page(),
+                    row.slot(),
+                    row.verified(),
+                    searchedItemId));
         }
         return new OrderExport(
                 schemaVersion,

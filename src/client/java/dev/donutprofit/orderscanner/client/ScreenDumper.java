@@ -99,14 +99,17 @@ public final class ScreenDumper {
 
     /**
      * Same as {@link #exportAndStore(ScreenDump)}, but for an autonomous search:
-     * the capture file keeps everything the page showed as evidence, while the
-     * snapshot only receives the rows of {@code onlyItemId}, tagged with the
-     * search that produced them.
+     * every row of the page is stored, tagged with the item that was searched.
      *
-     * @param onlyItemId the item id the scanner asked for, or {@code null} to
-     *                   store every row (manual capture).
+     * <p>The rows of the searched item are the direct observation; the rest are
+     * by-products that give other items a price level for free. The merge in
+     * {@link OrderExportStore} keeps them only until that item is scanned on its
+     * own.
+     *
+     * @param searchedItemId the item id the scanner asked for, or {@code null}
+     *                       for a manual capture.
      */
-    public static ExportResult exportAndStore(ScreenDump dump, String onlyItemId) throws Exception {
+    public static ExportResult exportAndStore(ScreenDump dump, String searchedItemId) throws Exception {
         OrderMenu menu = OrderMenuParser.parse(dump);
         if (menu.orders().isEmpty()) {
             return new ExportResult(0, menu.warnings().size(), null, null, List.of());
@@ -115,7 +118,7 @@ public final class ScreenDumper {
         OrderExport export = OrderExport.of(menu, dump.modVersion(), dump.capturedAt(), dump.screenTitle());
         Path capture = OrderExportStore.writeCapture(directory, export);
 
-        OrderExport stored = onlyItemId == null ? export : export.onlyFor(onlyItemId);
+        OrderExport stored = searchedItemId == null ? export : export.forSearch(searchedItemId);
         Path snapshot = stored.isEmpty() ? null : OrderExportStore.mergeIntoSnapshot(directory, stored);
         LOGGER.info("Exported {} orders to {} ({} stored, snapshot {})",
                 menu.orders().size(), capture, stored.orders().size(), snapshot);

@@ -117,13 +117,24 @@ Nunca dejar dos jars del mod en `mods/`: Fabric falla por mod id duplicado.
   `quantityRemaining = required - delivered`.
 - Se guardan **todas** las filas de la página del ítem buscado, no solo el mejor
   precio: DonutProfit arma la escalera de demanda.
-- **El escaneo automático guarda solo las filas del ítem buscado.** Paginar hacia
-  `diamond` atraviesa 42 páginas de otro gear; guardar esas filas infla la
-  escalera de esos ítems y deja filas viejas cuando se escanean de verdad. El
-  archivo de captura sí conserva la página completa como evidencia.
-- Merge: una fila con `search` reemplaza **todas** las filas de esa búsqueda, sin
-  importar la página (así un ítem que se corre de página no deja filas viejas).
-  Una fila sin `search` (F8 manual) reemplaza solo su página.
+- **El escaneo automático guarda toda la página, no solo el ítem buscado.**
+  Paginar hacia `diamond` atraviesa 42 páginas de otro gear; esas filas son
+  observaciones reales y le dan un nivel de precio a cada ítem sin gastar una
+  búsqueda. Pero son un **fallback**: en cuanto ese ítem se escanea por su cuenta,
+  sus filas incidentales se descartan y se reemplazan por el escaneo directo. Así
+  nunca inflan una escalera. El archivo de captura conserva la página completa.
+- Merge, con `search` (id del ítem buscado):
+  - Página 1 de una búsqueda: borra **todas** las filas de esa búsqueda (la
+    observación anterior) y las reemplaza. Se dispara solo en página 1 porque
+    una búsqueda profunda captura página por página; si se disparara en cada
+    página, la 2 borraría lo que guardó la 1.
+  - Filas incidentales (`itemId != search`): se guardan salvo que el ítem ya
+    tenga escaneo directo. Su identidad es `(itemId, unitPrice,
+    quantityRemaining)`, así dos búsquedas que la muestran no la duplican.
+  - Fila sin `search` (F8 manual): reemplaza solo su página.
+- **Aviso de ingestión:** las filas incidentales traen ítems que pueden no estar
+  en el catálogo de DonutProfit, y `orders.itemId` tiene FK a `items`. El dry run
+  los muestra; `--commit` falla si falta el ítem. Sembrar el catálogo antes.
 - El escaneo usa **siempre `Most Per Item`**. `Recently Listed` está descartado:
   da lo último publicado y cualquiera puede poner órdenes muy por debajo del
   precio real.

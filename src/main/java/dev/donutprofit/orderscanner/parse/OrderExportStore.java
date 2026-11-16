@@ -25,10 +25,10 @@ import java.util.Set;
  *       which is the file DonutProfit loads.</li>
  * </ul>
  *
- * <p>A menu page is the unit of replacement: capturing page 1 of an item
- * replaces the rows that page 1 had before, and leaves page 2 untouched. That
- * keeps the snapshot equal to the last observed order book instead of mixing
- * old and new rows for the same slot.
+ * <p>A menu page is the unit of replacement for manual captures: capturing page
+ * 1 of an item replaces the rows that page 1 had before, and leaves page 2
+ * untouched. That keeps the snapshot equal to the last observed order book
+ * instead of mixing old and new rows for the same slot.
  *
  * <p>No Minecraft types here, so the merge can be tested without the game.
  */
@@ -60,14 +60,22 @@ public final class OrderExportStore {
     /**
      * Merges the capture into {@code orders.json}.
      *
+     * <p>Two kinds of row arrive here: the rows of the item that was searched,
+     * tagged with that item, and the rows of every other item that shared the
+     * page, tagged with the search that surfaced them.
+     *
+     * <p>The second kind is kept. It is a real observation, and it gives an item
+     * a price level without spending a search on it. But it is a slice of a
+     * price band at a page that means nothing for that item, so it is treated as
+     * a fallback: as soon as the item is searched on its own, every by-product
+     * row of that item is dropped and replaced by the direct scan. That is what
+     * stops a ladder from being inflated by rows nobody asked for.
+     *
      * <p>Rows tagged with a {@code search} replace every previous row of that
      * same search, whatever page they were on: a search is one observation of
      * one item, so an item that moved from page 43 to page 41 must not leave its
      * old page-43 rows behind. Untagged rows (manual captures) keep the older
-     * page-based rule: the captured page replaces itself and nothing else.
-     *
-     * <p>Rows from other searches and other pages keep their own
-     * {@code observedAt}.
+     * page-based rule.
      *
      * @return the snapshot path.
      */
@@ -87,21 +95,43 @@ public final class OrderExportStore {
 
         Set<String> capturedItems = new HashSet<>();
         Set<String> searches = new HashSet<>();
+        Set<String> directItems = new HashSet<>();
+        for (OrderExport.Row row : rows.values()) {
+            if (isDirect(row)) {
+                directItems.add(row.itemId());
+            }
+        }
         for (OrderExport.Row row : export.orders()) {
             capturedItems.add(row.itemId());
             if (row.search() != null) {
                 searches.add(row.search());
             }
+            if (isDirect(row)) {
+                directItems.add(row.itemId());
+            }
         }
+
+        // Every search starts on page 1, and a deep search captures one page at
+        // a time. Clearing on every page would make page 2 delete what page 1
+        // just stored, so the previous observation is retired only on page 1.
+        boolean startsSearch = export.page() == 1;
+
         rows.entrySet().removeIf(entry -> {
             OrderExport.Row row = entry.getValue();
             if (row.search() != null) {
-                return searches.contains(row.search());
+                // A new observation of the same search replaces the old one, and
+                // a direct scan retires the by-products of that item.
+                return (startsSearch && searches.contains(row.search()))
+                        || (!isDirect(row) && directItems.contains(row.itemId()));
             }
             return row.page() == export.page() && capturedItems.contains(row.itemId());
         });
 
         for (OrderExport.Row row : export.orders()) {
+            // A by-product never overrides a real scan of that item.
+            if (!isDirect(row) && row.search() != null && directItems.contains(row.itemId())) {
+                continue;
+            }
             rows.put(key(row), row);
         }
 
@@ -138,7 +168,18 @@ public final class OrderExportStore {
         }
     }
 
+    /** A row the user asked for, as opposed to one that shared the page. */
+    private static boolean isDirect(OrderExport.Row row) {
+        return row.search() != null && row.search().equals(row.itemId());
+    }
+
     private static String key(OrderExport.Row row) {
-        return row.itemId() + "|" + row.page() + "|" + row.slot();
+        if (row.search() != null && !row.search().equals(row.itemId())) {
+            // A by-product row has no meaningful page of its own: its identity
+            // is the order itself, so two searches that surface it collapse
+            // instead of piling up.
+            return "i|" + row.itemId() + "|" + row.unitPrice() + "|" + row.quantityRemaining();
+        }
+        return "a|" + row.itemId() + "|" + row.page() + "|" + row.slot();
     }
 }

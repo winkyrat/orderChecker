@@ -6,11 +6,11 @@
 ## Estado actual
 
 - Fecha: 2026-11-16.
-- Fase: **Fase 3 verificada en vivo**, ahora con preset de throughput. `0.9.0`
-  corre `1-3 s` con sesgo corto y `pageDelay` 350-900 ms, pero mantiene
-  `maxPages` 200: pagina hasta encontrar el ítem. Sigue cortando en la primera
-  página que contiene el ítem y **solo guarda las filas de ese ítem**, siempre
-  con `Most Per Item`.
+- Fase: **Fase 3 verificada en vivo**, con preset de throughput y filas
+  incidentales. `0.10.0` corre `1-3 s` con sesgo corto y `pageDelay` 350-900 ms,
+  `maxPages` 200. Corta en la primera página que contiene el ítem, **guarda toda
+  la página** (las filas de otros ítems valen como dato) y siempre usa
+  `Most Per Item`.
 - Build/tests: `gradlew build` verde. **50 tests** (dumps, parser, snapshot,
   config, ritmo, topes de ítems/páginas, cursor de ítems). Siete fixtures reales.
 - Aprobación del owner para Fase 1: **dada** (eligió modo C y aceptó el riesgo).
@@ -166,16 +166,17 @@ Perfil aislado, para no mezclar Wurst con DonutSMP:
 | --- | --- |
 | Perfil del launcher | `Donut Scanner 1.21.11` → versión `fabric-loader-0.20.1-1.21.11` |
 | Carpeta de juego | `%APPDATA%\.minecraft-donutscanner\` |
-| Mods | `donut-order-scanner-0.9.0.jar`, `fabric-api-0.141.6+1.21.11.jar` |
+| Mods | `donut-order-scanner-0.10.0.jar`, `fabric-api-0.141.6+1.21.11.jar` |
 | Dumps y exports | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\dumps\` |
 | Config del escaneo | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\scan.json` |
 | Cursor de ítems | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\scan-cursor.txt` |
 | Fabric Loader | `0.20.1` (instalado con installer 1.1.2 en `.minecraft/versions`) |
 
-> `0.9.0` instalado el 2026-11-16 (hash `E5A621AA…93C7` verificado contra
-> `build/libs/`). `scan.json` vivo: **103 ítems provisionales**, `1-3 s`, sin
-> pausas largas, `maxPages: 200`, `pageDelay` 350-900 ms,
-> `maxPagesPerSession: 2000`, `maxItemsPerSession: 103`.
+> `0.10.0` instalado el 2026-11-16 (hash `55899CC3…3284` verificado contra
+> `build/libs/`). Cambia el merge: guarda la página completa y trata las filas de
+> otros ítems como fallback hasta que ese ítem se escanee directo. `scan.json`
+> vivo: **103 ítems provisionales**, `1-3 s`, sin pausas largas, `maxPages: 200`,
+> `pageDelay` 350-900 ms, `maxPagesPerSession: 2000`, `maxItemsPerSession: 103`.
 > El `orders.json` que mezclaba páginas de búsquedas ajenas quedó respaldado
 > como `dumps/orders.backup-mixed-pages.json` y se reinició el snapshot: sus
 > filas no tienen el campo `search` y no se pueden podar sin ambigüedad. También
@@ -347,14 +348,15 @@ npx tsx scripts/load-orders.ts "<ruta>\orders.json"
 
 ## Próximo paso exacto
 
-1. **Correr la sesión** con `0.9.0` (ya instalada) y los 103 provisionales. El
+1. **Correr la sesión** con `0.10.0` (ya instalada) y los 103 provisionales. El
    log debe decir `Scan started: 103 items, 1-3 s, cap 103 searches / 30 min`.
-   Esperado: los ítems comunes en 1 página y los profundos (`diamond`, `emerald`,
-   `iron`, `redstone`) paginando hasta encontrarlos, sin corte por `maxPages`.
-   Medir el tiempo total: es el número que decide qué lista entra en 30 min.
+   Ahora cada export reporta `(N stored, ...)` con N = filas de la página (hasta
+   45), no solo las del ítem buscado. Medir cuántas filas nuevas aporta un ítem
+   profundo como `diamond`: ahí está el valor de las filas incidentales.
 2. Validar el `orders.json` contra DonutProfit (`npx tsx scripts/load-orders.ts`,
-   dry run). Confirmar que cada ítem tiene solo sus propias filas y que no hay
-   filas de `diamond_sword` colgadas de otras búsquedas.
+   dry run). Revisar dos cosas: que cada ítem escaneado directo tenga solo las
+   filas de su escaneo (sin incidentales colgadas), y que el dry run no liste
+   ítems fuera del catálogo que vayan a romper la FK en `--commit`.
 3. **Ingerir la lista definitiva** cuando el owner la entregue (materias primas +
    ítems crafteados, del grafo de recetas). Solo hay que reemplazar el array
    `items` de `scan.json`; no hace falta recompilar.
