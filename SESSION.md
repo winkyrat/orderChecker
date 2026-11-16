@@ -27,6 +27,7 @@
 | S8 | 2026-11-16 | Una sola página | 75paginas, banda, $1, 0.7.0 |
 | S9 | 2026-11-16 | Multi-agente y GitHub | agents, roadmap, log, session, push |
 | S10 | 2026-11-16 | Verificación 0.7.0 y snapshot limpio | 42paginas, verificado, 2595filas, search, 0.8.0 |
+| S11 | 2026-11-16 | Cadencia de 5 segundos | cadencia, 5segundos, riesgo, 0.8.1 |
 
 ---
 
@@ -145,3 +146,17 @@
 - **Pendiente:** correr una sesión con `0.8.0`, validar el `orders.json` contra
   DonutProfit en dry run y confirmar que ningún ítem pasa de 45 filas.
 - **Keywords:** 42paginas, verificado, 2595filas, search, 0.8.0, snapshot.
+
+## S11 — Cadencia de 5 segundos
+
+- **El humano pidió:** "bajar mucho la cantidad de tiempo entre nuevo ítem
+  checkeado", con 5 s como referencia.
+- **Decisión:** ventana `5-9 s` (no 5 fijo, para no dejar un metrónomo). Se
+  mantienen la pausa larga del 5 % de 120-300 s y los topes de 40 búsquedas /
+  30 min.
+- **Medición:** 14 búsquedas pasan de 5 min 24 s a ~1 min 40 s. La lista de 60
+  se cubre en dos sesiones de ~5 min, y el tope que corta es el de 40 búsquedas.
+- **Riesgo explicitado:** son 7-12 comandos por minuto sostenidos, contra 2-3
+  antes. Se le dijo al humano que eso se parece más a un bot; la decisión es
+  suya. La ráfaga de `diamond` (~42 clics de Next page) no cambia.
+- **Keywords:** cadencia, 5segundos, riesgo, 0.8.1, ventana.

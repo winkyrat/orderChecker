@@ -9,8 +9,8 @@ import java.util.Set;
 /**
  * Settings for the autonomous scan, loaded from {@code scan.json}.
  *
- * <p>Defaults are the "medium" preset the owner picked: one search every
- * 12-35 seconds, an occasional long pause, and a hard stop after 40 items or
+ * <p>Defaults are the "fast" preset the owner picked on 2026-11-16: one search
+ * every 5-9 seconds, an occasional long pause, and a hard stop after 40 items or
  * 30 minutes. Nothing here is a guarantee of undetectability; the caps exist to
  * limit exposure, not to hide it.
  *
@@ -101,8 +101,8 @@ public record ScanConfig(
     public static ScanConfig defaults() {
         return new ScanConfig(
                 CATALOGUE_ITEMS,
-                12,
-                35,
+                5,
+                9,
                 5,
                 120,
                 300,

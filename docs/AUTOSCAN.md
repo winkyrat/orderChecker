@@ -86,8 +86,8 @@ editá el archivo, apretá F9 dos veces y toma los cambios sin reiniciar.
 | Campo | Default | Qué controla |
 | --- | --- | --- |
 | `items` | los 60 del catálogo | Qué buscar. Acepta `minecraft:glass` o `glass`. |
-| `minDelaySeconds` | 12 | Espera mínima entre búsquedas. |
-| `maxDelaySeconds` | 35 | Espera máxima entre búsquedas. |
+| `minDelaySeconds` | 5 | Espera mínima entre búsquedas. |
+| `maxDelaySeconds` | 9 | Espera máxima entre búsquedas. |
 | `longPauseChancePercent` | 5 | Probabilidad de una pausa larga. |
 | `longPauseMinSeconds` | 120 | Pausa larga mínima. |
 | `longPauseMaxSeconds` | 300 | Pausa larga máxima. |
@@ -101,6 +101,27 @@ editá el archivo, apretá F9 dos veces y toma los cambios sin reiniciar.
 
 Valores fuera de rango se recortan solos (nunca menos de 3 s entre búsquedas,
 nunca más de 240 min de sesión). Un `scan.json` roto vuelve a los defaults.
+
+### La cadencia y su costo
+
+`5–9 s` es el preset **rápido** que eligió el owner el 2026-11-16 (antes era
+`12–35 s`). Medido en la corrida de las 05:28: con `12–35 s` salieron 14
+búsquedas en 5 min 24 s (~23 s por ítem). Con `5–9 s` esas mismas 14 búsquedas
+tardan ~1 min 40 s.
+
+El costo es la densidad: `5–9 s` son **7-12 comandos por minuto** sostenidos,
+contra 2-3 con el preset anterior. Eso es mucho más parecido a un bot que a una
+persona leyendo precios. La pausa larga (5 % de 120-300 s) rompe la regularidad,
+pero no cambia el promedio. No hay promesa de indetectabilidad: es una decisión
+de riesgo del owner, no una medida de evasión.
+
+Ojo con los ítems profundos: `diamond` son ~42 clics de "Next page" a 350-900 ms,
+o sea ~25 s de clics seguidos. Bajar la espera entre búsquedas no cambia esa
+ráfaga; si querés menos exposición, lo que hay que subir es `pageDelayMinMillis`
+y `pageDelayMaxMillis`.
+
+Con `5–9 s`, el tope que corta una sesión es `maxItemsPerSession` (40), no los
+30 minutos: la lista de 60 se cubre en dos sesiones de ~5 min cada una.
 
 `scan-cursor.txt`, al lado de `scan.json`, guarda el índice del próximo ítem.
 Así una sesión de 40 búsquedas sobre 60 ítems no deja los últimos 20 sin
@@ -124,7 +145,7 @@ volver a empezar por el primer ítem de la lista.
 - No falsifica paquetes: usa el comando y el click reales del cliente.
 - No mueve al jugador ni gira la cámara.
 - No se oculta de la lista de mods ni del servidor.
-- No promete ser indetectable. Manda un comando cada 12–35 s durante 30 min;
+- No promete ser indetectable. Manda un comando cada 5–9 s durante 30 min;
   un servidor puede detectar ese patrón. Los topes reducen la exposición, no la
   eliminan.
 - No escribe el dump crudo de cada página automática (serían ~400 KB por
@@ -149,7 +170,7 @@ inflada con datos de hace media hora. Cada ítem se mide con su propia búsqueda
 En `logs/latest.log`:
 
 ```
-Scan started: 60 items, 12-35 s, cap 40 searches / 30 min, starting at minecraft:diamond
+Scan started: 60 items, 5-9 s, cap 40 searches / 30 min, starting at minecraft:diamond
 Scan: /order diamond (search 1/40)
 Scan: /order diamond page 1 -> 45 rows [minecraft:diamond_helmet, minecraft:diamond_block, ...]
 Scan: /order diamond page 2 -> 45 rows [minecraft:diamond_boots, minecraft:diamond_pickaxe, ...]

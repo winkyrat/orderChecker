@@ -23,8 +23,8 @@ class ScanConfigStoreTest {
         Path file = tempDir.resolve(ScanConfigStore.FILE_NAME);
         assertTrue(Files.exists(file), "the owner must be able to edit the settings");
         assertEquals(ScanConfig.CATALOGUE_ITEMS.size(), config.items().size());
-        assertEquals(12, config.minDelaySeconds());
-        assertEquals(35, config.maxDelaySeconds());
+        assertEquals(5, config.minDelaySeconds());
+        assertEquals(9, config.maxDelaySeconds());
         assertEquals(200, config.maxPages());
         assertEquals(400, config.maxPagesPerSession());
         assertTrue(Files.readString(file).contains("\"items\""));
@@ -32,10 +32,10 @@ class ScanConfigStoreTest {
 
     @Test
     void keepsDefaultsForFieldsTheFileDoesNotMention() {
-        ScanConfig config = ScanConfigStore.read("{\"minDelaySeconds\": 20}");
+        ScanConfig config = ScanConfigStore.read("{\"minDelaySeconds\": 4}");
 
-        assertEquals(20, config.minDelaySeconds());
-        assertEquals(35, config.maxDelaySeconds(), "untouched fields keep the default");
+        assertEquals(4, config.minDelaySeconds());
+        assertEquals(9, config.maxDelaySeconds(), "untouched fields keep the default");
         assertEquals(ScanConfig.CATALOGUE_ITEMS.size(), config.items().size());
     }
 
@@ -57,7 +57,7 @@ class ScanConfigStoreTest {
     void fallsBackToDefaultsOnBrokenJson() {
         ScanConfig config = ScanConfigStore.read("{ this is not json");
 
-        assertEquals(12, config.minDelaySeconds());
+        assertEquals(5, config.minDelaySeconds());
         assertEquals(ScanConfig.CATALOGUE_ITEMS.size(), config.items().size());
     }
 

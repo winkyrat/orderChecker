@@ -177,3 +177,22 @@
   anterior se respaldó como `dumps/orders.backup-mixed-pages.json` y se reinició
   (sus filas no tienen `search`), y se borró el cursor para reconstruir desde el
   índice 0. Tests: 49 (8 suites).
+
+## 2026-11-16 — Cadencia de 5-9 s (0.8.1)
+
+- **Contexto:** el owner pidió "bajar mucho la cantidad de tiempo entre nuevo
+  ítem checkeado", con 5 s como referencia.
+- **Medición:** la corrida de las 05:28 con `12-35 s` hizo 14 búsquedas en 5 min
+  24 s (~23 s por ítem). Con `5-9 s` esas 14 tardan ~1 min 40 s.
+- **Decisión:** `minDelaySeconds` 5 y `maxDelaySeconds` 9 (ventana, no 5 fijo:
+  un intervalo exacto es el patrón más fácil de flaggear). Se mantiene la pausa
+  larga del 5 % de 120-300 s y los topes de 40 búsquedas / 30 min.
+- **Alternativa descartada:** 5 s exactos. Un metrónomo perfecto es peor que una
+  ventana chica, y la diferencia de velocidad es marginal.
+- **Costo asumido:** 7-12 comandos por minuto sostenidos, contra 2-3 antes. Es
+  una decisión de riesgo del owner, no una mejora de evasión. La ráfaga de
+  `diamond` (~42 clics de "Next page" a 350-900 ms) no cambia con esto; si se
+  quiere bajar exposición ahí, hay que subir `pageDelay*Millis`.
+- **Consecuencia:** con `5-9 s` el tope que corta la sesión es
+  `maxItemsPerSession` (40), no los 30 min. La lista de 60 se cubre en dos
+  sesiones de ~5 min.

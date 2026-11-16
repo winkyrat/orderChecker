@@ -7,9 +7,9 @@
 
 - Fecha: 2026-11-16.
 - Fase: **Fase 3 verificada en vivo**. Primera corrida real completa: 7 búsquedas,
-  938 filas, sin fallos. En `0.8.0` el escaneo pagina hasta encontrar el ítem
-  pedido, corta en la primera página que lo contiene y **solo guarda las filas de
-  ese ítem**, siempre con `Most Per Item`.
+  938 filas, sin fallos. En `0.8.1` el escaneo pagina hasta encontrar el ítem
+  pedido, corta en la primera página que lo contiene, **solo guarda las filas de
+  ese ítem** y espera 5-9 s entre búsquedas, siempre con `Most Per Item`.
 - Build/tests: `gradlew build` verde. **49 tests** (dumps, parser, snapshot,
   config, ritmo, topes de ítems/páginas, cursor de ítems). Siete fixtures reales.
 - Aprobación del owner para Fase 1: **dada** (eligió modo C y aceptó el riesgo).
@@ -165,15 +165,16 @@ Perfil aislado, para no mezclar Wurst con DonutSMP:
 | --- | --- |
 | Perfil del launcher | `Donut Scanner 1.21.11` → versión `fabric-loader-0.20.1-1.21.11` |
 | Carpeta de juego | `%APPDATA%\.minecraft-donutscanner\` |
-| Mods | `donut-order-scanner-0.8.0.jar`, `fabric-api-0.141.6+1.21.11.jar` |
+| Mods | `donut-order-scanner-0.8.1.jar`, `fabric-api-0.141.6+1.21.11.jar` |
 | Dumps y exports | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\dumps\` |
 | Config del escaneo | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\scan.json` |
 | Cursor de ítems | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\scan-cursor.txt` |
 | Fabric Loader | `0.20.1` (instalado con installer 1.1.2 en `.minecraft/versions`) |
 
-> `0.8.0` instalado el 2026-11-16 (hash `C4FB8FAA…7692` verificado contra
-> `build/libs/`). `scan.json` vivo con `maxPages: 200` y
-> `maxPagesPerSession: 400`. El `orders.json` que mezclaba páginas de búsquedas
+> `0.8.1` instalado el 2026-11-16 (hash `EDCC5AC9…A1FF` verificado contra
+> `build/libs/`). `scan.json` vivo con `maxPages: 200`,
+> `maxPagesPerSession: 400` y cadencia **5-9 s** (`minDelaySeconds: 5`,
+> `maxDelaySeconds: 9`). El `orders.json` que mezclaba páginas de búsquedas
 > ajenas quedó respaldado como `dumps/orders.backup-mixed-pages.json` y se
 > reinició el snapshot: sus filas no tienen el campo `search` y no se pueden
 > podar sin ambigüedad. También se borró `scan-cursor.txt` para reconstruir el
@@ -345,12 +346,13 @@ npx tsx scripts/load-orders.ts "<ruta>\orders.json"
 
 ## Próximo paso exacto
 
-1. **Correr una sesión** con `0.8.0` (ya instalada) y la lista de 60 con
-   `Most Per Item`. El snapshot arranca vacío y el cursor en 0. Esperado: 1
-   página por ítem, salvo `iron`, `emerald`, `diamond` y `redstone`, que paginan
-   hasta encontrarlo (42-43 en `diamond`). En el log, cada export debe decir
-   `(N stored, snapshot ...)` con N = filas del ítem buscado, no las 45 de la
-   página.
+1. **Correr una sesión** con `0.8.1` (ya instalada) y la lista de 60 con
+   `Most Per Item`. El snapshot arranca vacío y el cursor en 0. El log debe decir
+   `Scan started: 60 items, 5-9 s` y los ítems deben salir cada 5-9 s (pausa
+   larga ocasional de 2-5 min). Esperado: 1 página por ítem, salvo `iron`,
+   `emerald`, `diamond` y `redstone`, que paginan hasta encontrarlo (42-43 en
+   `diamond`). En cada export, `(N stored, snapshot ...)` con N = filas del ítem
+   buscado, no las 45 de la página.
 2. Validar el `orders.json` resultante contra DonutProfit
    (`npx tsx scripts/load-orders.ts`, dry run). Confirmar que cada ítem tiene
    solo sus propias filas, que `minecraft:diamond` trae `$11.200` y alrededores,
