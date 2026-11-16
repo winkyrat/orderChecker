@@ -53,6 +53,23 @@ Dos datos nuevos del servidor:
 - Los ítems baratos son los últimos de la lista, porque el orden es por precio
   descendente. Los ítems que más interesan para crafteo son justo esos.
 
+### Pruebas de búsqueda exacta (04:27–04:28)
+
+Dos capturas manuales con F8 para ver si hay una forma barata de llegar al ítem
+pedido. **Las dos fallaron:**
+
+| Comando | Resultado |
+| --- | --- |
+| `/order` sin argumentos | Abre `Orders (Page 1)` **vacío**: 0 filas, sin Next page. No sirve. |
+| `/order minecraft:diamond` | **No** es match exacto. Devolvió la lista **global sin filtrar**, ordenada por precio descendente: 45 elytras de `$ 585M` a `$ 530M`, con Next page. |
+
+Conclusión: el prefijo `minecraft:` no restringe nada, así que no hay atajo de
+búsqueda. La única palanca que queda es **profundidad de páginas** (o cambiar el
+filtro de slot 47). Sin resolver: `minecraft:diamond` sigue sin capturarse.
+
+Efecto secundario útil: `$ 585M each` parsea bien a `585000000`. Quedó el
+fixture `orders-global-page1.json` con esa página.
+
 ## Instalación en la máquina del owner (2026-11-13)
 
 Perfil aislado, para no mezclar Wurst con DonutSMP:
@@ -220,18 +237,15 @@ npx tsx scripts/load-orders.ts "<ruta>\orders.json"
 
 ## Próximo paso exacto
 
-1. **Resolver la cobertura de búsqueda** (ver "Hallazgo de la corrida 1").
-   Antes de subir `maxPages` a ciegas, una prueba barata decide todo:
-   - en el juego, escribir a mano `/order minecraft:diamond` y apretar **F8**;
-   - si vuelven solo filas de `minecraft:diamond`, el prefijo `minecraft:` fuerza
-     match exacto y cada búsqueda pasa a costar 1 página;
-   - si vuelve el mismo gear de siempre, hay que paginar más profundo o aceptar
-     cobertura parcial.
-   Segunda prueba en el mismo viaje: `/order` sin argumentos + F8. Si abre la
-   lista completa del servidor, se puede paginar una sola vez en vez de mandar
-   60 comandos.
-2. Con esa evidencia, ajustar `AutoScanner` (forma del comando o `maxPages`) y
-   documentar el resultado acá y en `docs/AUTOSCAN.md`.
+1. **Probar el filtro de slot 47** (única palanca barata que queda). En el juego:
+   `/order diamond`, click en el hopper (filtro) hasta que quede **Recently
+   Listed**, F8. Si el ítem barato aparece en la página 1, cada búsqueda vuelve a
+   costar 1-2 páginas y el problema se resuelve sin paginar 15 páginas.
+   Si no, decidir con el owner entre:
+   - subir `maxPages` solo para los ítems que de verdad comercia;
+   - aceptar cobertura parcial y que el export lo diga (ya avisa en 0.4.2).
+2. Con esa evidencia, ajustar `AutoScanner` y documentar el resultado acá y en
+   `docs/AUTOSCAN.md`.
 3. Ajustar `scan.json` (ritmo, topes, lista de ítems) según lo que se vea.
 4. Si el cliente no entra con 1.21.11: recompilar para 26.3 (Fabric API
    `0.166.2+26.3`, Java 25, mappings de Mojang). El código es portable.
@@ -244,8 +258,9 @@ npx tsx scripts/load-orders.ts "<ruta>\orders.json"
 - B8: resuelto. Modo C, con jitter/pausas/topes y sin evasión.
 - B9: **cobertura de búsqueda**. Un nombre genérico devuelve todas las variantes
   ordenadas por precio descendente, así que el ítem barato pedido puede quedar
-  fuera de las 3 páginas. Sin resolver: `minecraft:diamond` no se capturó.
-- Dumps reales: **desbloqueado**. Hay tres capturas reales como fixtures.
+  fuera de las 3 páginas. Descartados: `/order` sin args (vacío) y
+  `/order minecraft:<id>` (lista global). Sin resolver: `minecraft:diamond`.
+- Dumps reales: **desbloqueado**. Siete fixtures reales.
 
 ## Comandos previstos
 

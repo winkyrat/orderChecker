@@ -122,6 +122,18 @@ class OrderMenuParserTest {
     }
 
     @Test
+    void readsMillionPricesFromTheGlobalList() throws Exception {
+        OrderMenu menu = OrderMenuParser.parse(fixture("orders-global-page1.json"));
+
+        assertEquals(45, menu.orders().size());
+        assertTrue(menu.orders().stream()
+                        .allMatch(order -> order.itemId().equals("minecraft:elytra")),
+                "the unfiltered list starts with the most expensive orders");
+        assertEquals(585_000_000L, menu.orders().get(0).unitPrice(), "$ 585M each");
+        assertEquals(530_000_000L, menu.orders().get(44).unitPrice(), "$ 530M each");
+    }
+
+    @Test
     void readsTwoItemVariantsFromOneSearch() throws Exception {
         OrderMenu menu = OrderMenuParser.parse(fixture("orders-obsidian-page1.json"));
 

@@ -77,7 +77,7 @@ public final class ScreenDumper {
 
             ExportResult result = exportAndStore(dump);
             String extra = result.isEmpty()
-                    ? ""
+                    ? " (no orders on this screen)"
                     : " | " + result.rows() + " orders -> " + result.snapshot().getFileName();
 
             playFeedback(client, 1.6F);

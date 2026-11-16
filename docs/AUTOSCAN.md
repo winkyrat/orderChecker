@@ -31,7 +31,14 @@ la barra de acción lo dicen explícitamente:
 
 Cuando pasa, esas filas de gear igual se guardan (sirven para esos ítems), pero
 el ítem pedido queda sin datos. Para bajar precios exactos de materiales baratos
-hay que paginar más profundo o encontrar una forma de búsqueda exacta.
+hay que paginar más profundo o cambiar el orden.
+
+Atajos descartados con capturas reales (2026-11-16):
+
+| Intento | Resultado |
+| --- | --- |
+| `/order` sin argumentos | Menú vacío, 0 filas. |
+| `/order minecraft:diamond` | Lista global sin filtrar: 45 elytras de $585M a $530M. |
 
 ## Cómo se prende
 
