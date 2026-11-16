@@ -111,11 +111,19 @@ Nunca dejar dos jars del mod en `mods/`: Fabric falla por mod id duplicado.
 - **Export compatible con `parseOrdersJson` de DonutProfit.** Claves extra las
   descarta Zod; no cambiar nombres ni tipos sin coordinarlo.
 - Fila: `{itemId, side:"buy", unitPrice, quantityRemaining, observedAt,
-  displayName, page, slot, verified:false}`.
+  displayName, page, slot, verified:false, search}`. `search` es el id del ítem
+  cuya búsqueda produjo la fila, o ausente en una captura manual.
 - `872/1k Delivered` significa entregado/requerido:
   `quantityRemaining = required - delivered`.
-- Se guardan **todas** las filas; DonutProfit arma la escalera de demanda.
-- Merge por `itemId|page|slot`: una página reemplaza solo sus propias filas.
+- Se guardan **todas** las filas de la página del ítem buscado, no solo el mejor
+  precio: DonutProfit arma la escalera de demanda.
+- **El escaneo automático guarda solo las filas del ítem buscado.** Paginar hacia
+  `diamond` atraviesa 42 páginas de otro gear; guardar esas filas infla la
+  escalera de esos ítems y deja filas viejas cuando se escanean de verdad. El
+  archivo de captura sí conserva la página completa como evidencia.
+- Merge: una fila con `search` reemplaza **todas** las filas de esa búsqueda, sin
+  importar la página (así un ítem que se corre de página no deja filas viejas).
+  Una fila sin `search` (F8 manual) reemplaza solo su página.
 - El escaneo usa **siempre `Most Per Item`**. `Recently Listed` está descartado:
   da lo último publicado y cualquiera puede poner órdenes muy por debajo del
   precio real.

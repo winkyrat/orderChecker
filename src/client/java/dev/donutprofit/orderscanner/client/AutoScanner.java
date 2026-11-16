@@ -235,7 +235,7 @@ public final class AutoScanner {
         ScreenDump dump = ScreenDumper.capture(client, container);
         ScreenDumper.ExportResult result;
         try {
-            result = ScreenDumper.exportAndStore(dump);
+            result = ScreenDumper.exportAndStore(dump, currentItem);
         } catch (Exception error) {
             LOGGER.error("Scan: could not export page {} of {}", page, currentItem, error);
             fail(client, "could not write the export");

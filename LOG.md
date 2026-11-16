@@ -142,3 +142,38 @@
 - **Herramienta:** `gh` no está instalado; el push usa el credential manager de
   Git ya configurado (`credential.helper=manager`). No se manejan tokens a mano.
 - **Consecuencia:** `origin` → <https://github.com/winkyrat/orderChecker>.
+
+## 2026-11-16 — Verificación en vivo del corte en una página (0.7.0)
+
+- **Contexto:** la corrida de las 05:14 usó `0.6.0` y siguió de la página 43 a la
+  75; había que confirmar que `0.7.0` cortaba.
+- **Evidencia:** corrida de las 05:25 con `0.7.0`:
+  `page 42 -> 45 rows [..., minecraft:diamond]` y
+  `done -> 42 pages, minecraft:diamond found`. `diamond` quedó con 2 filas,
+  `$11.300` (1.959 unidades) y `$11.200` (1.700), sin órdenes de `$1`.
+- **Decisión:** el corte en la primera página que contiene el ítem queda
+  confirmado; no hace falta leer la banda.
+- **Consecuencia:** `diamond` cuesta 42 páginas en vez de 75.
+
+## 2026-11-16 — El snapshot guarda solo el ítem buscado (0.8.0)
+
+- **Contexto:** la corrida de `diamond` guardó, además de sus 2 filas, las de los
+  otros ítems de las 42 páginas recorridas. El snapshot quedó con 2.595 filas, de
+  las cuales 339 eran de `diamond_sword` en las páginas 2-42 de una búsqueda
+  ajena, con precios de `$1.6M` a `$12.1K`.
+- **Problema:** al escanear `diamond_sword` de verdad, su página 1 se fusionaba
+  por página y las 38 páginas viejas quedaban: escalera de demanda inflada y con
+  datos de media hora antes. Si el ítem se corre de página, el merge por página
+  tampoco borra las filas de la página vieja.
+- **Decisión:** el escaneo automático escribe en el snapshot solo las filas del
+  ítem buscado y las marca con `search` (el id del ítem). Una búsqueda nueva
+  reemplaza todas las filas de esa búsqueda, sin importar la página. La captura
+  (`orders-pN-*.json`) sigue guardando la página completa como evidencia.
+- **Alternativas descartadas:** guardar todas las filas y podar por página
+  (deja la deriva); podar por "página mínima observada" (deja cortes parciales de
+  la banda de otro ítem); filtrar en DonutProfit (prohibido sin aprobación).
+- **Consecuencia:** `orders.json` queda con ≤45 filas por ítem. El campo `search`
+  es una clave extra para DonutProfit, que la descarta como el resto. El snapshot
+  anterior se respaldó como `dumps/orders.backup-mixed-pages.json` y se reinició
+  (sus filas no tienen `search`), y se borró el cursor para reconstruir desde el
+  índice 0. Tests: 49 (8 suites).

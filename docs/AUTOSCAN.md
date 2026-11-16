@@ -131,6 +131,19 @@ volver a empezar por el primer ítem de la lista.
   página). Solo escribe el export compacto y `orders.json`. El dump crudo queda
   para F8 manual.
 
+## Qué guarda en el snapshot
+
+El export de cada página conserva la página completa como evidencia, pero
+`orders.json` **solo recibe las filas del ítem buscado**, y cada fila lleva el
+campo `search` con ese ítem. Una búsqueda nueva reemplaza todas las filas de la
+misma búsqueda, sin importar la página.
+
+Motivo: para llegar a `diamond` hay que pasar 42 páginas de gear de diamante. Si
+esas filas se guardaran, `diamond_sword` aparecería con 339 órdenes repartidas en
+las páginas 2-42 de una búsqueda ajena, y al escanearlo de verdad su página 1 se
+fusionaría por página dejando las viejas atrás. Su escalera de demanda quedaría
+inflada con datos de hace media hora. Cada ítem se mide con su propia búsqueda.
+
 ## Cómo verificar que funcionó
 
 En `logs/latest.log`:
@@ -154,3 +167,12 @@ costó llegar al ítem; `never returned` avisa que la lista se terminó sin él.
 
 Y en `config/donut_order_scanner/dumps/` aparecen `orders-p1-*.json`,
 `orders-p2-*.json` y se actualiza `orders.json`.
+
+La línea de export dice cuántas filas se guardaron de verdad:
+
+```
+Exported 45 orders to ...\orders-p43-1794816916504.json (2 stored, snapshot ...\orders.json)
+```
+
+`45 orders` es lo que había en la página; `2 stored` son las de `diamond` que
+entraron al snapshot.

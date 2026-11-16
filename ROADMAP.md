@@ -46,20 +46,25 @@
 - [x] Reporte honesto cuando un tope corta la búsqueda antes de encontrar el ítem.
 - [x] `scan-cursor.txt` para rotar los 60 ítems entre sesiones.
 - [x] Primera corrida autónoma real (7 búsquedas, 938 filas, sin fallos).
-- [ ] **Verificar en vivo `0.7.0`**: `diamond` debe cortar en la página 43
-      (`done -> 43 pages`), no seguir a la 75.
+- [x] **Verificar en vivo `0.7.0`**: `diamond` cortó en la página 42
+      (`done -> 42 pages`), sin seguir a la 75 (corrida de las 05:25).
+- [ ] **Verificar en vivo `0.8.0`**: cada export debe guardar solo las filas del
+      ítem buscado (`(N stored, snapshot ...)`) y `orders.json` debe quedar con
+      ≤45 filas por ítem.
 
 ## Fase 4 — Calidad de datos y operación
 
 - [ ] Validar el `orders.json` reconstruido contra DonutProfit (dry run) y
-      confirmar que `diamond` tiene `$11.200` y ninguna orden de `$1`.
+      confirmar que cada ítem tiene solo sus propias filas y que `diamond` trae
+      `$11.200` y alrededores.
 - [ ] Ajustar la lista de 60 ítems a lo que el humano realmente comercia.
 - [ ] Medir páginas por ítem en una sesión completa y recalibrar
       `maxPagesPerSession` si sobra o falta.
-- [ ] Resolver la deriva del snapshot cuando la página de un ítem se corre
-      (hoy el merge por página deja filas viejas si el ítem cambia de página).
-- [ ] Decidir si se agrega un campo `search` a las filas para poder podar por
-      búsqueda sin ambigüedad.
+- [x] Resolver la deriva del snapshot cuando la página de un ítem se corre
+      (0.8.0: una búsqueda reemplaza todas sus filas, sin importar la página).
+- [x] Decidir si se agrega un campo `search` a las filas (0.8.0: sí, opcional).
+- [x] Dejar de guardar en el snapshot las filas de otros ítems vistas al paginar
+      (0.8.0: solo se guarda el ítem buscado; la captura conserva la página).
 - [ ] Documentar el procedimiento de recuperación si `orders.json` queda viejo.
 
 ## Fase 5 — Integración con DonutProfit
@@ -76,7 +81,7 @@
 - [x] `LOG.md` con decisiones instrumentales.
 - [x] `SESSION.md` aditivo con índice y regla de lectura parcial.
 - [x] Remoto `origin` → <https://github.com/winkyrat/orderChecker>.
-- [ ] Primer push de `main` al remoto.
+- [x] Primer push de `main` al remoto (`931c418`, verificado con `git ls-remote`).
 - [ ] Verificar que un agente nuevo pueda retomar leyendo solo
       `AGENTS.md` + `ROADMAP.md` + `docs/STATE.md` + última entrada de
       `SESSION.md`.

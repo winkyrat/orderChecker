@@ -6,17 +6,39 @@
 ## Estado actual
 
 - Fecha: 2026-11-16.
-- Fase: **Fase 3 probada en vivo**. Primera corrida real completa: 7 búsquedas,
-  938 filas, sin fallos. En `0.7.0` el escaneo pagina hasta encontrar el ítem
-  pedido y corta en la primera página que lo contiene, siempre con
-  `Most Per Item`.
-- Build/tests: `gradlew build` verde. **45 tests** (dumps, parser, snapshot,
+- Fase: **Fase 3 verificada en vivo**. Primera corrida real completa: 7 búsquedas,
+  938 filas, sin fallos. En `0.8.0` el escaneo pagina hasta encontrar el ítem
+  pedido, corta en la primera página que lo contiene y **solo guarda las filas de
+  ese ítem**, siempre con `Most Per Item`.
+- Build/tests: `gradlew build` verde. **49 tests** (dumps, parser, snapshot,
   config, ritmo, topes de ítems/páginas, cursor de ítems). Siete fixtures reales.
 - Aprobación del owner para Fase 1: **dada** (eligió modo C y aceptó el riesgo).
 - **Problema abierto:** el buscador de órdenes matchea por subcadena y ordena
-  por precio descendente, así que el ítem barato aparece último. Medido: unos
-  40-50 páginas para `diamond`. Resuelto paginando profundo, con el presupuesto
+  por precio descendente, así que el ítem barato aparece último. Medido: 42-43
+  páginas para `diamond`. Resuelto paginando profundo, con el presupuesto
   de páginas de la sesión como único freno real.
+
+## Verificación en vivo de `0.7.0` (2026-11-16, 05:25)
+
+La corrida de las 05:14 usó `0.6.0` y siguió hasta la página 75. La de las 05:25
+ya tenía `0.7.0` y cortó donde corresponde:
+
+```
+Scan: /order diamond page 42 -> 45 rows [..., minecraft:diamond]
+Scan: /order diamond done -> 42 pages, minecraft:diamond found
+```
+
+42 páginas en vez de 75, y `minecraft:diamond` quedó con **2 filas**:
+`$11.300` (1.959 unidades) y `$11.200` (1.700), ambas en la página 42. Ninguna
+orden de `$1`. El corte en una página funciona.
+
+Esa misma corrida dejó a la vista un problema de datos que `0.8.0` corrige: al
+paginar hacia `diamond` se guardaban también las filas de los otros ítems de cada
+página. El snapshot quedó con 2.595 filas, de las cuales 339 eran de
+`diamond_sword` repartidas en las páginas 2-42 de una búsqueda que no era la
+suya, con precios de `$1.6M` a `$12.1K`. Al escanear `diamond_sword` de verdad,
+su página 1 se fusionaba por página y esas 38 páginas viejas quedaban ahí,
+inflando su escalera de demanda.
 
 ## Hallazgo de la corrida 1 (2026-11-16, 04:12–04:15)
 
@@ -143,19 +165,19 @@ Perfil aislado, para no mezclar Wurst con DonutSMP:
 | --- | --- |
 | Perfil del launcher | `Donut Scanner 1.21.11` → versión `fabric-loader-0.20.1-1.21.11` |
 | Carpeta de juego | `%APPDATA%\.minecraft-donutscanner\` |
-| Mods | `donut-order-scanner-0.7.0.jar`, `fabric-api-0.141.6+1.21.11.jar` |
+| Mods | `donut-order-scanner-0.8.0.jar`, `fabric-api-0.141.6+1.21.11.jar` |
 | Dumps y exports | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\dumps\` |
 | Config del escaneo | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\scan.json` |
 | Cursor de ítems | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\scan-cursor.txt` |
 | Fabric Loader | `0.20.1` (instalado con installer 1.1.2 en `.minecraft/versions`) |
 
-> `0.7.0` instalado el 2026-11-16 (hash `D5721501…EDBF` verificado contra
+> `0.8.0` instalado el 2026-11-16 (hash `C4FB8FAA…7692` verificado contra
 > `build/libs/`). `scan.json` vivo con `maxPages: 200` y
-> `maxPagesPerSession: 400`. El `orders.json` de la corrida de 75 páginas quedó
-> respaldado como `dumps/orders.backup-before-onepage.json` y se reinició el
-> snapshot, porque esa corrida guardó órdenes de `$1` que la política de una
-> página ya no captura. También se borró `scan-cursor.txt` para que la próxima
-> sesión arranque en `diamond`. Nunca dejar dos jars del mod en `mods/`: Fabric
+> `maxPagesPerSession: 400`. El `orders.json` que mezclaba páginas de búsquedas
+> ajenas quedó respaldado como `dumps/orders.backup-mixed-pages.json` y se
+> reinició el snapshot: sus filas no tienen el campo `search` y no se pueden
+> podar sin ambigüedad. También se borró `scan-cursor.txt` para reconstruir el
+> catálogo desde el índice 0. Nunca dejar dos jars del mod en `mods/`: Fabric
 > falla por mod id duplicado.
 
 ### Incidente 0.4.0 (2026-11-16)
@@ -262,12 +284,28 @@ Evidencia en `src/test/resources/fixtures/`:
 | --- | --- |
 | `orders_page_1-<ms>.json` | Dump crudo (evidencia, todos los slots). |
 | `orders-p1-<ms>.json` | Export de esa captura, formato DonutProfit. |
-| `orders.json` | Snapshot: todas las filas conocidas; una captura reemplaza solo su página. |
+| `orders.json` | Snapshot: todas las filas conocidas. |
 
 `orders.json` es el archivo que se le pasa a DonutProfit. Cada fila conserva su
 `observedAt`, así que DonutProfit puede descartar lo viejo por ventana de
-frescura. Reemplazar por página evita mezclar una fila vieja con una nueva del
-mismo slot, y a la vez permite juntar página 1 y página 2 del mismo ítem.
+frescura.
+
+Cómo se fusiona:
+
+- **Escaneo automático (F9):** solo se guardan las filas del ítem buscado, y cada
+  fila lleva `search` (el id del ítem). Una búsqueda nueva reemplaza **todas** las
+  filas de esa misma búsqueda, sin importar la página: si `diamond` pasa de la
+  página 43 a la 41, las filas viejas de la 43 desaparecen.
+- **Captura manual (F8):** las filas van sin `search` y la página capturada
+  reemplaza solo esa página.
+
+Por qué no se guardan las filas de los otros ítems de la página: al paginar hacia
+un ítem barato se ven decenas de páginas de otros ítems. Esas filas son reales
+pero son un corte de la banda de precios de otro ítem, en una página que no
+significa nada para la búsqueda propia de ese ítem. Guardarlas inflaba su
+escalera de demanda y dejaba filas viejas cuando el ítem se escaneaba de verdad.
+El archivo de captura (`orders-pN-*.json`) sí conserva la página completa como
+evidencia.
 
 ### Validación del contrato (2026-11-16, sin tocar DonutProfit)
 
@@ -302,19 +340,21 @@ npx tsx scripts/load-orders.ts "<ruta>\orders.json"
 | D5 | Parser puro, sin imports de Minecraft | Testeable con fixtures reales. |
 | D6 | Intervalo fijo de 3 s descartado | Un patrón perfecto es más detectable. Se usa jitter con cola larga. |
 | D7 | El snapshot guarda **todas** las filas, no el mejor precio | DonutProfit arma una escalera de demanda por ítem (`addLevel`); colapsar a una fila subestima cuánto compra el mercado. |
-| D8 | Reemplazo por (ítem, página) al fusionar | Permite juntar página 1 y 2 del mismo ítem sin mezclar filas viejas del mismo slot. |
+| D8 | Reemplazo por búsqueda cuando la fila tiene `search`; por página cuando es manual | Una búsqueda es una sola observación de un ítem: así un ítem que se corre de página no deja filas viejas, y una captura manual sigue reemplazando solo su página. |
 | D9 | Precio truncado, no redondeado | El menú imprime decimales (`$ 511.2 each`); truncar nunca infla el profit. |
 
 ## Próximo paso exacto
 
-1. **Correr una sesión** con `0.7.0` (ya instalada) y la lista de 60 con
-   `Most Per Item`. El log debe mostrar `done -> 43 pages, minecraft:diamond
-   found` y **cortar ahí**, sin seguir a las páginas 44-75. Esperado: 1 página
-   para los nombres propios y 20-50 para `iron`, `emerald`, `diamond` y
-   `redstone`.
+1. **Correr una sesión** con `0.8.0` (ya instalada) y la lista de 60 con
+   `Most Per Item`. El snapshot arranca vacío y el cursor en 0. Esperado: 1
+   página por ítem, salvo `iron`, `emerald`, `diamond` y `redstone`, que paginan
+   hasta encontrarlo (42-43 en `diamond`). En el log, cada export debe decir
+   `(N stored, snapshot ...)` con N = filas del ítem buscado, no las 45 de la
+   página.
 2. Validar el `orders.json` resultante contra DonutProfit
-   (`npx tsx scripts/load-orders.ts`, dry run). Confirmar que `minecraft:diamond`
-   tiene sus órdenes más caras (`$11.200` y alrededores) y ninguna de `$1`.
+   (`npx tsx scripts/load-orders.ts`, dry run). Confirmar que cada ítem tiene
+   solo sus propias filas, que `minecraft:diamond` trae `$11.200` y alrededores,
+   y que no quedan filas de `diamond_sword` en páginas 2-42.
 3. Si el cliente no entra con 1.21.11: recompilar para 26.3 (Fabric API
    `0.166.2+26.3`, Java 25, mappings de Mojang). El código es portable.
 

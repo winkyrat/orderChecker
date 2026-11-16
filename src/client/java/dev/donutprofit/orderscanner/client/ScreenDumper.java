@@ -94,6 +94,19 @@ public final class ScreenDumper {
      * and merges it into {@code orders.json}.
      */
     public static ExportResult exportAndStore(ScreenDump dump) throws Exception {
+        return exportAndStore(dump, null);
+    }
+
+    /**
+     * Same as {@link #exportAndStore(ScreenDump)}, but for an autonomous search:
+     * the capture file keeps everything the page showed as evidence, while the
+     * snapshot only receives the rows of {@code onlyItemId}, tagged with the
+     * search that produced them.
+     *
+     * @param onlyItemId the item id the scanner asked for, or {@code null} to
+     *                   store every row (manual capture).
+     */
+    public static ExportResult exportAndStore(ScreenDump dump, String onlyItemId) throws Exception {
         OrderMenu menu = OrderMenuParser.parse(dump);
         if (menu.orders().isEmpty()) {
             return new ExportResult(0, menu.warnings().size(), null, null, List.of());
@@ -101,8 +114,11 @@ public final class ScreenDumper {
         Path directory = dumpsDirectory();
         OrderExport export = OrderExport.of(menu, dump.modVersion(), dump.capturedAt(), dump.screenTitle());
         Path capture = OrderExportStore.writeCapture(directory, export);
-        Path snapshot = OrderExportStore.mergeIntoSnapshot(directory, export);
-        LOGGER.info("Exported {} orders to {} (snapshot {})", menu.orders().size(), capture, snapshot);
+
+        OrderExport stored = onlyItemId == null ? export : export.onlyFor(onlyItemId);
+        Path snapshot = stored.isEmpty() ? null : OrderExportStore.mergeIntoSnapshot(directory, stored);
+        LOGGER.info("Exported {} orders to {} ({} stored, snapshot {})",
+                menu.orders().size(), capture, stored.orders().size(), snapshot);
         return new ExportResult(
                 menu.orders().size(),
                 menu.warnings().size(),

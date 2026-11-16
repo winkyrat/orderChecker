@@ -60,11 +60,14 @@ public final class OrderExportStore {
     /**
      * Merges the capture into {@code orders.json}.
      *
-     * <p>Rows are keyed by item, page and slot. Every row of the captured page
-     * is replaced by what the capture saw, so a vanished order disappears from
-     * the snapshot, and cheaper rows of the same item are kept instead of being
-     * collapsed into the best price. Rows from other items and other pages keep
-     * their own {@code observedAt}.
+     * <p>Rows tagged with a {@code search} replace every previous row of that
+     * same search, whatever page they were on: a search is one observation of
+     * one item, so an item that moved from page 43 to page 41 must not leave its
+     * old page-43 rows behind. Untagged rows (manual captures) keep the older
+     * page-based rule: the captured page replaces itself and nothing else.
+     *
+     * <p>Rows from other searches and other pages keep their own
+     * {@code observedAt}.
      *
      * @return the snapshot path.
      */
@@ -83,11 +86,18 @@ public final class OrderExportStore {
         }
 
         Set<String> capturedItems = new HashSet<>();
+        Set<String> searches = new HashSet<>();
         for (OrderExport.Row row : export.orders()) {
             capturedItems.add(row.itemId());
+            if (row.search() != null) {
+                searches.add(row.search());
+            }
         }
         rows.entrySet().removeIf(entry -> {
             OrderExport.Row row = entry.getValue();
+            if (row.search() != null) {
+                return searches.contains(row.search());
+            }
             return row.page() == export.page() && capturedItems.contains(row.itemId());
         });
 

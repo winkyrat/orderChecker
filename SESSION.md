@@ -26,6 +26,7 @@
 | S7 | 2026-11-16 | Modo único y sin tope | mostperitem, sinlimite, 0.6.0, cursor |
 | S8 | 2026-11-16 | Una sola página | 75paginas, banda, $1, 0.7.0 |
 | S9 | 2026-11-16 | Multi-agente y GitHub | agents, roadmap, log, session, push |
+| S10 | 2026-11-16 | Verificación 0.7.0 y snapshot limpio | 42paginas, verificado, 2595filas, search, 0.8.0 |
 
 ---
 
@@ -127,3 +128,20 @@
 - **Pendiente:** confirmar el primer push y que un agente nuevo pueda retomar
   leyendo solo `AGENTS.md` + `ROADMAP.md` + `docs/STATE.md` + la última entrada.
 - **Keywords:** agents, roadmap, log, session, push, github, main.
+
+## S10 — Verificación 0.7.0 y snapshot limpio
+
+- **El humano no habló en esta entrada:** es continuación del trabajo pedido en
+  S9 (dejar el proyecto andando y publicado) más la verificación pendiente.
+- **Verificado en vivo:** la corrida de las 05:25 usó `0.7.0` y cortó en
+  `done -> 42 pages, minecraft:diamond found`; `diamond` quedó con `$11.300` y
+  `$11.200`, sin `$1`. La corrida de 75 páginas era la `0.6.0` de las 05:14.
+- **Hallazgo:** el snapshot tenía 2.595 filas y mezclaba páginas de búsquedas
+  ajenas (339 de `diamond_sword` en páginas 2-42 de la búsqueda de `diamond`).
+- **Decisión instrumental:** `0.8.0` guarda en el snapshot solo las filas del
+  ítem buscado, con un campo `search`; una búsqueda reemplaza todas sus filas.
+  Snapshot respaldado (`orders.backup-mixed-pages.json`) y reiniciado; cursor
+  borrado para reconstruir desde el índice 0.
+- **Pendiente:** correr una sesión con `0.8.0`, validar el `orders.json` contra
+  DonutProfit en dry run y confirmar que ningún ítem pasa de 45 filas.
+- **Keywords:** 42paginas, verificado, 2595filas, search, 0.8.0, snapshot.
