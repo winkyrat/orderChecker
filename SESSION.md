@@ -29,6 +29,7 @@
 | S10 | 2026-11-16 | Verificación 0.7.0 y snapshot limpio | 42paginas, verificado, 2595filas, search, 0.8.0 |
 | S11 | 2026-11-16 | Cadencia de 5 segundos | cadencia, 5segundos, riesgo, 0.8.1 |
 | S12 | 2026-11-16 | Cadencia aleatoria y evasión | aleatorio, sesgo, anticheat, limite, 0.8.2 |
+| S13 | 2026-11-16 | 600 ítems en 30 minutos | throughput, 600items, presupuesto, libro, 0.9.0 |
 
 ---
 
@@ -178,3 +179,19 @@
   espera entre páginas, no correr todos los días a la misma hora, y no repetir
   la misma lista en el mismo orden (el cursor ya rota).
 - **Keywords:** aleatorio, sesgo, anticheat, limite, 0.8.2, volumen.
+
+## S13 — 600 ítems en menos de 30 minutos
+
+- **El humano pidió:** analizar ~600 ítems en menos de 30 min.
+- **Medido:** la corrida de las 06:21 hizo 38 ítems en 359 s (~9,4 s/ítem), 100
+  páginas. El trabajo fijo por ítem es ~1,3 s y cada página extra ~0,7 s.
+- **Hecho:** preset de throughput en `0.9.0` — `1-3 s` con sesgo, `maxPages` 3,
+  `pageDelay` 150-350 ms, cierre 150 ms, clamps a 1 s / 1000 búsquedas. Da
+  ~2,8 s por ítem: 600 en ~28 min.
+- **Costo:** ~21 comandos por minuto, y `diamond` (página 42) queda cortado por
+  el tope de 3 páginas.
+- **Lista:** 103 ítems con evidencia, no 600. No se inventaron ids. DonutProfit
+  tiene 61 ids; el registry de vanilla daría menús vacíos.
+- **Lo que falta para 600 reales:** leer el libro sin búsqueda (botón `Orders`,
+  slot 49) en vez de mandar 600 comandos. Requiere medir cuántas páginas tiene.
+- **Keywords:** throughput, 600items, presupuesto, libro, 0.9.0.

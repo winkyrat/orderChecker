@@ -52,10 +52,14 @@ desde este proyecto.
 
 ### 1.3.1 Qué quedó implementado (0.4.0) y qué no mitiga
 
-Medidas presentes: delay al azar 5-12 s con sesgo corto (0.8.2; antes 12-35 s
-uniforme), pausa larga ocasional (3% de 1-2 min), topes de 40 búsquedas y
+Medidas presentes: delay al azar 1-3 s con sesgo corto en el preset de throughput
+(0.9.0; 5-12 s en el preset seguro), sin pausas largas, topes de 103 búsquedas y
 30 min, corte si el jugador se mueve, si la ventana pierde foco o si aparece otro
-menú, y `maxPages` como guarda contra un bucle.
+menú, y `maxPages` como tope de profundidad por ítem.
+
+El preset de throughput sube la densidad a ~21 comandos por minuto. Es la
+decisión explícita del owner para cubrir 600 ítems en 30 min y **empeora** este
+riesgo respecto de 0.8.2: más volumen, no menos.
 
 Lo que **no** cambia el fondo del problema: el servidor ve un cliente que manda
 `/order` y clickea "Next page" en un patrón de máquina. Eso es exactamente lo que

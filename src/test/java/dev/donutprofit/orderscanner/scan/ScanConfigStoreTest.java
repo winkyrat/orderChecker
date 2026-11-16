@@ -43,14 +43,16 @@ class ScanConfigStoreTest {
     void clampsValuesThatWouldBeDangerous() {
         ScanConfig config = ScanConfigStore.read(
                 "{\"minDelaySeconds\": 0, \"maxDelaySeconds\": 1, \"maxPages\": 9999,"
-                        + " \"maxSessionMinutes\": 100000, \"longPauseChancePercent\": 500}")
+                        + " \"maxSessionMinutes\": 100000, \"longPauseChancePercent\": 500,"
+                        + " \"maxItemsPerSession\": 99999}")
                 .sanitized();
 
-        assertEquals(3, config.minDelaySeconds(), "never below three seconds");
-        assertEquals(3, config.maxDelaySeconds(), "max is raised to match the minimum");
+        assertEquals(1, config.minDelaySeconds(), "never below one second");
+        assertEquals(1, config.maxDelaySeconds(), "max is raised to match the minimum");
         assertEquals(500, config.maxPages());
         assertEquals(240, config.maxSessionMinutes());
         assertEquals(100, config.longPauseChancePercent());
+        assertEquals(1000, config.maxItemsPerSession());
     }
 
     @Test

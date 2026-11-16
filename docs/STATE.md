@@ -6,10 +6,10 @@
 ## Estado actual
 
 - Fecha: 2026-11-16.
-- Fase: **Fase 3 verificada en vivo**. Primera corrida real completa: 7 búsquedas,
-  938 filas, sin fallos. En `0.8.2` el escaneo pagina hasta encontrar el ítem
-  pedido, corta en la primera página que lo contiene, **solo guarda las filas de
-  ese ítem** y espera 5-12 s con sesgo al extremo corto, siempre con
+- Fase: **Fase 3 verificada en vivo**, ahora en modo throughput. `0.9.0` corre
+  el preset de 600-ítems-en-30-min: `1-3 s` con sesgo corto, `maxPages` 3,
+  `pageDelay` 150-350 ms, ~2,8 s por ítem. Sigue cortando en la primera página
+  que contiene el ítem y **solo guarda las filas de ese ítem**, siempre con
   `Most Per Item`.
 - Build/tests: `gradlew build` verde. **50 tests** (dumps, parser, snapshot,
   config, ritmo, topes de ítems/páginas, cursor de ítems). Siete fixtures reales.
@@ -166,21 +166,21 @@ Perfil aislado, para no mezclar Wurst con DonutSMP:
 | --- | --- |
 | Perfil del launcher | `Donut Scanner 1.21.11` → versión `fabric-loader-0.20.1-1.21.11` |
 | Carpeta de juego | `%APPDATA%\.minecraft-donutscanner\` |
-| Mods | `donut-order-scanner-0.8.2.jar`, `fabric-api-0.141.6+1.21.11.jar` |
+| Mods | `donut-order-scanner-0.9.0.jar`, `fabric-api-0.141.6+1.21.11.jar` |
 | Dumps y exports | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\dumps\` |
 | Config del escaneo | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\scan.json` |
 | Cursor de ítems | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\scan-cursor.txt` |
 | Fabric Loader | `0.20.1` (instalado con installer 1.1.2 en `.minecraft/versions`) |
 
-> `0.8.2` instalado el 2026-11-16 (hash `51DCD687…97C5` verificado contra
-> `build/libs/`). `scan.json` vivo con `maxPages: 200`,
-> `maxPagesPerSession: 400` y cadencia **5-12 s con sesgo corto** (3 % de pausa
-> de 1-2 min). El `orders.json` que mezclaba páginas de búsquedas ajenas quedó
-> respaldado como `dumps/orders.backup-mixed-pages.json` y se reinició el
-> snapshot: sus filas no tienen el campo `search` y no se pueden podar sin
-> ambigüedad. También se borró `scan-cursor.txt` para reconstruir el catálogo
-> desde el índice 0. Nunca dejar dos jars del mod en `mods/`: Fabric falla por
-> mod id duplicado.
+> `0.9.0` instalado el 2026-11-16 (hash `E5A621AA…93C7` verificado contra
+> `build/libs/`). `scan.json` vivo en preset throughput: **103 ítems** (los
+> observados en capturas reales), `1-3 s`, sin pausas largas, `maxPages: 3`,
+> `pageDelay` 150-350 ms, `maxPagesPerSession: 2000`, `maxItemsPerSession: 103`.
+> El `orders.json` que mezclaba páginas de búsquedas ajenas quedó respaldado
+> como `dumps/orders.backup-mixed-pages.json` y se reinició el snapshot: sus
+> filas no tienen el campo `search` y no se pueden podar sin ambigüedad. También
+> se borró `scan-cursor.txt` para reconstruir el catálogo desde el índice 0.
+> Nunca dejar dos jars del mod en `mods/`: Fabric falla por mod id duplicado.
 
 ### Incidente 0.4.0 (2026-11-16)
 
@@ -347,25 +347,34 @@ npx tsx scripts/load-orders.ts "<ruta>\orders.json"
 
 ## Próximo paso exacto
 
-1. **Correr una sesión** con `0.8.2` (ya instalada) y la lista de 60 con
-   `Most Per Item`. El snapshot arranca vacío y el cursor en 0. El log debe decir
-   `Scan started: 60 items, 5-12 s` y los huecos deben verse irregulares (la
-   mayoría cortos, alguno de 10-12 s, cada tanto 1-2 min). Esperado: 1 página por
-   ítem, salvo `iron`, `emerald`, `diamond` y `redstone`, que paginan hasta
-   encontrarlo (42-43 en `diamond`). En cada export, `(N stored, snapshot ...)`
-   con N = filas del ítem buscado, no las 45 de la página.
-2. Validar el `orders.json` resultante contra DonutProfit
-   (`npx tsx scripts/load-orders.ts`, dry run). Confirmar que cada ítem tiene
-   solo sus propias filas, que `minecraft:diamond` trae `$11.200` y alrededores,
-   y que no quedan filas de `diamond_sword` en páginas 2-42.
-3. Si el cliente no entra con 1.21.11: recompilar para 26.3 (Fabric API
+1. **Correr la sesión de throughput** con `0.9.0` (ya instalada) y los 103 ítems.
+   El log debe decir `Scan started: 103 items, 1-3 s, cap 103 searches / 30 min`.
+   Esperado: ~4-5 min, casi todos los ítems en 1 página, y los profundos
+   (`diamond`, `emerald`, `iron`, `redstone`) cortados en 3 páginas con
+   `cut after 3 pages by the 3 page per-item cap`. Eso es lo esperado, no un
+   fallo: el preset cambia profundidad por cobertura.
+2. Validar el `orders.json` contra DonutProfit (`npx tsx scripts/load-orders.ts`,
+   dry run). Confirmar que cada ítem tiene solo sus propias filas y que no hay
+   filas de `diamond_sword` colgadas de otras búsquedas.
+3. **Medir el libro completo** (lo que habilita los 600 ítems de verdad): abrir
+   el menú de órdenes, clickear `Orders` (slot 49), y anotar cuántas páginas
+   tiene el libro sin búsqueda. Con eso se decide si el barrido completo es una
+   pasada de 1-2 min (que reemplaza 600 búsquedas) o si no escala. Sin esa
+   medición no se implementa el barrido: sería adivinar la estructura del menú.
+4. Si el cliente no entra con 1.21.11: recompilar para 26.3 (Fabric API
    `0.166.2+26.3`, Java 25, mappings de Mojang). El código es portable.
 
 ## Bloqueos
 
 - B1: confirmar que el cliente entra con 1.21.11. Si no, portar a 26.3.
 - B2: resuelto. El owner aceptó el riesgo y eligió modo autónomo (C).
-- B3: lista de ítems. Provisional: los 60 del seed de DonutProfit.
+- B3: **parcial**. La lista viva tiene 103 ítems con evidencia (aparecen en las
+  311 capturas). No hay lista de 600: llegar a ese número exige leer el libro sin
+  búsqueda, o inventar ids. Ver próximo paso 3.
+- B10: el barrido del libro completo (sin búsqueda) no está implementado y no se
+  puede implementar sin medir cuántas páginas tiene y si el botón `Orders` abre
+  la vista sin filtro. Es la única vía conocida para 600 ítems con menos
+  comandos, no con más.
 - B8: resuelto. Modo C, con jitter/pausas/topes y sin evasión.
 - B9: **resuelto**. `Most Per Item` es el modo único. `diamond` vive cerca de la
   página 40-50 y se llega paginando profundo; el costo se acota con

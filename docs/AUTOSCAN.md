@@ -85,64 +85,93 @@ editá el archivo, apretá F9 dos veces y toma los cambios sin reiniciar.
 
 | Campo | Default | Qué controla |
 | --- | --- | --- |
-| `items` | los 60 del catálogo | Qué buscar. Acepta `minecraft:glass` o `glass`. |
-| `minDelaySeconds` | 5 | Espera mínima entre búsquedas. |
-| `maxDelaySeconds` | 12 | Espera máxima entre búsquedas. |
-| `longPauseChancePercent` | 3 | Probabilidad de una pausa larga. |
+| `items` | 60 en el código; 103 en el `scan.json` vivo | Qué buscar. Acepta `minecraft:glass` o `glass`. |
+| `minDelaySeconds` | 1 | Espera mínima entre búsquedas. |
+| `maxDelaySeconds` | 3 | Espera máxima entre búsquedas. |
+| `longPauseChancePercent` | 0 | Probabilidad de una pausa larga. |
 | `longPauseMinSeconds` | 60 | Pausa larga mínima. |
 | `longPauseMaxSeconds` | 120 | Pausa larga máxima. |
-| `maxItemsPerSession` | 40 | Tope de búsquedas por sesión. |
+| `maxItemsPerSession` | 103 | Tope de búsquedas por sesión. |
 | `maxSessionMinutes` | 30 | Tope de duración de la sesión. |
-| `maxPages` | 200 | Guarda contra un bucle. El escaneo corta antes si encuentra el ítem o si la lista termina. |
-| `maxPagesPerSession` | 400 | Tope de páginas leídas en toda la sesión. Es el control real de cuántos clics se permiten. |
-| `pageDelayMinMillis` | 350 | Espera mínima tras "Next page". |
-| `pageDelayMaxMillis` | 900 | Espera máxima tras "Next page". |
+| `maxPages` | 3 | Tope de páginas **por ítem**. Con 3 se corta la paginación profunda; con 200 se llega a los ítems baratos como `diamond`. |
+| `maxPagesPerSession` | 2000 | Tope de páginas leídas en toda la sesión. Es el control real de cuántos clics se permiten. |
+| `pageDelayMinMillis` | 150 | Espera mínima tras "Next page". |
+| `pageDelayMaxMillis` | 350 | Espera máxima tras "Next page". |
 | `screenTimeoutMillis` | 4000 | Cuánto esperar a que abra el menú. |
 
-Valores fuera de rango se recortan solos (nunca menos de 3 s entre búsquedas,
-nunca más de 240 min de sesión). Un `scan.json` roto vuelve a los defaults.
+Valores fuera de rango se recortan solos (nunca menos de 1 s entre búsquedas,
+nunca más de 240 min de sesión, nunca más de 1000 búsquedas). Un `scan.json`
+roto vuelve a los defaults.
 
 ### La cadencia y su costo
 
-La espera entre búsquedas no es uniforme: se sortea dentro de `5-12 s` con un
-sesgo hacia el extremo corto (se eleva al cuadrado el sorteo uniforme), así que
-la mayoría de los huecos caen en `5-7 s`, algunos en `8-12 s`, y cada tanto hay
-una pausa de `1-2 min` (3 %). Es la forma de una persona leyendo precios: casi
-siempre rápido, a veces más lento, de vez en cuando se distrae. Un sorteo
-uniforme pasaría la misma cantidad de tiempo en el extremo lento que en el
-rápido, y eso se lee como una máquina regulándose.
+Hay dos presets y la diferencia entre ellos es el objetivo, no el gusto.
 
-Promedio medido con esos parámetros: **~10-11 s por ítem**. La corrida de las
-05:28 con `12-35 s` hizo 14 búsquedas en 5 min 24 s (~23 s por ítem); con este
-preset esas 14 tardan ~2 min 30 s.
+**Seguro (defaults del código):** `5-12 s` con sesgo al extremo corto, 3 % de
+pausa de 1-2 min, `maxPages` 200, 40 búsquedas. Es el que deja el repo si borrás
+`scan.json`. Rinde ~10-11 s por ítem.
 
-El costo es la densidad: son **5-9 comandos por minuto** sostenidos, contra 2-3
-con el preset original. Eso es más parecido a un bot que a una persona leyendo
-precios, aunque los huecos ya no sean planos. **No hay promesa de
-indetectabilidad**: esto no evade nada, solo evita el metrónomo perfecto, que es
-lo más barato de detectar. La decisión de riesgo es del owner.
+**Throughput (`scan.json` vivo desde `0.9.0`):** `1-3 s` con el mismo sesgo
+(promedio ~1,54 s), sin pausas largas, `maxPages` 3, `pageDelay` 150-350 ms. La
+cuenta sale de lo medido, no de una estimación:
 
-Ojo con los ítems profundos: `diamond` son ~42 clics de "Next page" a 350-900 ms,
-o sea ~25 s de clics seguidos. Cambiar la espera entre búsquedas no toca esa
-ráfaga; si querés menos exposición, lo que hay que subir es
-`pageDelayMinMillis` y `pageDelayMaxMillis`, o sacar los ítems profundos de la
-lista.
+| Componente | Costo medido |
+| --- | --- |
+| Abrir menú + capturar 1 página | ~1,0 s |
+| Espera de cierre por ítem | 0,15 s (era 0,3) |
+| Página extra ("Next page") | ~0,25 s a 150-350 ms |
+| Hueco entre búsquedas | ~1,54 s promedio |
 
-Con este preset, el tope que corta una sesión es `maxItemsPerSession` (40), no
-los 30 minutos: la lista de 60 se cubre en dos sesiones de ~7 min cada una.
+Con la distribución real de la corrida de las 06:21 (76 % de los ítems entran en
+1 página, 8 % en 2, 16 % tocan el tope de 3), el costo por ítem queda en
+**~2,8 s**. Eso da **~28 min para 600 ítems**, justo dentro del objetivo.
+
+**El precio de ese número:**
+
+- Son **~21 comandos por minuto** durante media hora. Es el patrón más parecido
+  a un bot que este proyecto puede producir. No hay forma de hacer 600 ítems en
+  30 min con menos: el piso físico por ítem (abrir menú, leer, cerrar) es ~1,15 s
+  y el resto es el hueco.
+- `maxPages` 3 corta la paginación profunda. `diamond` aparece en la página 42:
+  en throughput **se corta y no entra al snapshot**. Lo mismo `emerald`, `iron` y
+  `redstone` si se comportan igual. Para recuperarlos hay que correr una sesión
+  con `maxPages` 200 y una lista corta.
+- El tope de páginas por sesión tiene que subir a 2000. Con 400 el escaneo se
+  cortaría en el ítem ~360.
+
+**Lo que no cambia:** un hueco de 1-3 s sigue siendo un hueco. El sesgo evita el
+metrónomo, no la estadística. La densidad es la que expone, y acá la densidad es
+deliberadamente alta porque el objetivo es la cobertura.
+
+Ojo con los ítems profundos: `diamond` son ~42 clics de "Next page". A 150-350 ms
+eso son ~10 s de clics seguidos. Subir `pageDelayMinMillis` y
+`pageDelayMaxMillis` es la palanca para bajar esa ráfaga, a costa de tiempo.
 
 `scan-cursor.txt`, al lado de `scan.json`, guarda el índice del próximo ítem.
-Así una sesión de 40 búsquedas sobre 60 ítems no deja los últimos 20 sin
-escanear: la siguiente arranca donde terminó la anterior. Borralo si querés
-volver a empezar por el primer ítem de la lista.
+Así una sesión que no cubre la lista entera no deja el final sin escanear: la
+siguiente arranca donde terminó la anterior. Borralo si querés volver a empezar
+por el primer ítem de la lista.
+
+### Sobre los 600 ítems
+
+El `scan.json` vivo tiene **103 ítems**, no 600: son los únicos ids que aparecen
+en las 311 capturas reales del libro de órdenes de este servidor. No hay una
+lista de 600 con evidencia. Escanear ids de vanilla que el servidor no opera
+gasta el mismo presupuesto por ítem y devuelve un menú vacío.
+
+La forma de llegar a 600 sin inventar nada es leer el libro **sin búsqueda**, una
+sola vez: el botón `Orders` (slot 49) abre la lista completa y cada página trae
+45 órdenes. Eso revela todos los ítems que existen y sus precios en una pasada,
+sin mandar ni un comando. Está sin implementar porque falta medir cuántas páginas
+tiene ese libro; ver `STATE.md`.
 
 ## Cuándo se corta solo
 
 | Situación | Mensaje |
 | --- | --- |
 | Tres fallos seguidos | `Scan off: <motivo> three times in a row` |
-| Tope de búsquedas o minutos | `Scan off: reached the 40 search cap` |
-| Tope de páginas | `Scan off: reached the 400 page cap` |
+| Tope de búsquedas o minutos | `Scan off: reached the 103 search cap` |
+| Tope de páginas | `Scan off: reached the 2000 page cap` |
 | Aparece otro menú que no es el de órdenes | `Scan off: another menu is open` |
 | Movés, atacás o usás el ítem en mano | `Scan off: you started playing` |
 | La ventana pierde el foco | `Scan off: the window lost focus` |
@@ -153,8 +182,9 @@ volver a empezar por el primer ítem de la lista.
 - No falsifica paquetes: usa el comando y el click reales del cliente.
 - No mueve al jugador ni gira la cámara.
 - No se oculta de la lista de mods ni del servidor.
-- No promete ser indetectable. Manda un comando cada 5-12 s durante 30 min;
-  un servidor puede detectar ese patrón. Los topes reducen la exposición, no la
+- No promete ser indetectable. Manda un comando cada 1-3 s durante 30 min en el
+  preset de throughput; un servidor puede detectar ese patrón. Los topes reducen
+  la exposición, no la
   eliminan.
 - No escribe el dump crudo de cada página automática (serían ~400 KB por
   página). Solo escribe el export compacto y `orders.json`. El dump crudo queda

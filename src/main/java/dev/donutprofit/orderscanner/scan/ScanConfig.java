@@ -120,6 +120,12 @@ public record ScanConfig(
      * Returns a copy that is safe to run: every number clamped to a sane range,
      * delays ordered, and items de-duplicated. A hand-edited file must never
      * turn into a 100 ms loop or a zero-item session.
+     *
+     * <p>The floor is one second, not three. A throughput run needs a gap
+     * around 1.5 s to fit hundreds of items in half an hour, and one second is
+     * still far above a tight loop: the client cannot send faster than that
+     * anyway once the menu round trip is counted. Below one second the file is
+     * treated as a mistake and raised.
      */
     public ScanConfig sanitized() {
         List<String> cleanItems = normalizeItems(items);
@@ -127,7 +133,7 @@ public record ScanConfig(
             cleanItems = CATALOGUE_ITEMS;
         }
 
-        int min = clamp(minDelaySeconds, 3, 3600);
+        int min = clamp(minDelaySeconds, 1, 3600);
         int max = clamp(maxDelaySeconds, min, 3600);
 
         int pauseMin = clamp(longPauseMinSeconds, max, 7200);
@@ -140,7 +146,7 @@ public record ScanConfig(
                 clamp(longPauseChancePercent, 0, 100),
                 pauseMin,
                 pauseMax,
-                clamp(maxItemsPerSession, 1, 500),
+                clamp(maxItemsPerSession, 1, 1000),
                 clamp(maxSessionMinutes, 1, 240),
                 clamp(maxPages, 1, 500),
                 clamp(maxPagesPerSession, 1, 2000),

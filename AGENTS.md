@@ -131,14 +131,18 @@ Nunca dejar dos jars del mod en `mods/`: Fabric falla por mod id duplicado.
   descendente. `/order minecraft:diamond` devuelve menú vacío.
 - Se pagina hasta la **primera página que contiene el ítem** y se corta ahí:
   esa página ya trae sus órdenes más caras. No se lee la banda completa.
-- Topes: `maxPages` 200 (guarda anti-bucle), `maxPagesPerSession` 400 (control
-  real de clics), 40 búsquedas y 30 min por sesión.
-- Cadencia: **5-12 s** entre búsquedas, con sesgo al extremo corto y 3 % de
-  pausa de 1-2 min (decisión del owner, 2026-11-16; antes 12-35 s uniforme). Es
-  ~5-9 comandos por minuto: más rápido, y por lo tanto más expuesto. Si otro
-  agente la cambia, anotarlo en `LOG.md`.
-- `scan-cursor.txt` guarda el próximo índice para cubrir los 60 ítems entre
-  sesiones.
+- Topes: `maxPages` es el tope **por ítem** (3 en throughput, 200 en el preset
+  seguro), `maxPagesPerSession` 2000, `maxItemsPerSession` 103 y 30 min por
+  sesión. El clamp duro permite hasta 1000 búsquedas y páginas de 1 s.
+- Cadencia: dos presets. **Seguro** (defaults del código): `5-12 s` con sesgo al
+  extremo corto y 3 % de pausa de 1-2 min. **Throughput** (el `scan.json` vivo):
+  `1-3 s` con el mismo sesgo, sin pausas, `maxPages` 3, `pageDelay` 150-350 ms,
+  ~2,8 s por ítem. El owner eligió throughput el 2026-11-16 sabiendo que son
+  ~21 comandos por minuto y que contradice la prioridad 1. Si otro agente lo
+  cambia, anotarlo en `LOG.md`.
+- `scan-cursor.txt` guarda el próximo índice para cubrir la lista entre sesiones.
+  La lista viva tiene **103 ítems** (los observados en capturas reales), no 600:
+  no existe una lista de 600 con evidencia. Ver `docs/AUTOSCAN.md`.
 - Escaneo automático: solo export compacto + `orders.json`. Dump crudo solo F8.
 
 ## 9. Git y GitHub

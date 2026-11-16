@@ -36,16 +36,21 @@
 - [x] Máquina de estados: comando → espera → captura → página → cierre → pausa.
 - [x] Cadencia irregular: 5-12 s con sesgo al extremo corto (0.8.2; antes
       12-35 s uniforme), 3 % de pausa de 1-2 min.
-- [x] Topes: 40 búsquedas / 30 min por sesión.
+- [x] Preset de throughput (0.9.0): 1-3 s con sesgo, `maxPages` 3 por ítem,
+      `pageDelay` 150-350 ms, cierre 150 ms → ~2,8 s por ítem.
+- [x] Topes: 103 búsquedas / 30 min por sesión (clamp hasta 1000).
 - [x] Auto-stop: 3 fallos, otro menú, movimiento/ataque/uso, pérdida de foco,
       salida del mundo.
 - [x] Paginación dirigida: leer hasta que el ítem aparezca.
 - [x] **Cortar en la primera página que contiene el ítem** (0.7.0), sin leer la
       banda completa.
-- [x] `maxPages` 200 como guarda anti-bucle; `maxPagesPerSession` 400 como
-      control real de clics.
+- [x] `maxPages` como tope por ítem (3 en throughput, 200 en el preset seguro);
+      `maxPagesPerSession` 2000 como control real de clics.
 - [x] Reporte honesto cuando un tope corta la búsqueda antes de encontrar el ítem.
-- [x] `scan-cursor.txt` para rotar los 60 ítems entre sesiones.
+- [x] `scan-cursor.txt` para rotar la lista entre sesiones.
+- [x] Lista viva de 103 ítems observados en capturas reales (0.9.0).
+- [ ] **Barrido del libro sin búsqueda** (slot 49) para cubrir todos los ítems
+      con una pasada. Bloqueado por B10: falta medir cuántas páginas tiene.
 - [x] Primera corrida autónoma real (7 búsquedas, 938 filas, sin fallos).
 - [x] **Verificar en vivo `0.7.0`**: `diamond` cortó en la página 42
       (`done -> 42 pages`), sin seguir a la 75 (corrida de las 05:25).

@@ -45,6 +45,7 @@ public final class AutoScanner {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OrderScannerClient.MOD_ID);
     private static final int MAX_CONSECUTIVE_FAILURES = 3;
+    private static final long CLOSE_SETTLE_MILLIS = 150L;
 
     private final ScanSchedule schedule = new ScanSchedule(new Random());
 
@@ -297,7 +298,11 @@ public final class AutoScanner {
 
         closeScreen(client);
         phase = Phase.CLOSE_WAIT;
-        deadline = now + 300L;
+        // 150 ms, not 300: this wait runs once per item, so over hundreds of
+        // items it costs minutes. The WAIT phase already refuses to send while
+        // a screen is open, so a slow close just delays the next command
+        // instead of overlapping it.
+        deadline = now + CLOSE_SETTLE_MILLIS;
     }
 
     private void finishItem(Minecraft client) {

@@ -218,3 +218,31 @@
   fuera del alcance del proyecto (`AGENTS.md` §4). La aleatorización de tiempos
   se queda en "no mandar un metrónomo", no en "evadir".
 - **Consecuencia:** `0.8.2`, 50 tests (uno nuevo verifica el sesgo).
+
+## 2026-11-16 — Preset de throughput y techo real de los 600 ítems (0.9.0)
+
+- **Contexto:** el owner pidió analizar ~600 ítems en menos de 30 min. Eso son
+  3,0 s por ítem, contra los ~9,4 s medidos en la corrida de las 06:21.
+- **Medición que decide:** 38 ítems, 100 páginas, 359 s. De esos 359 s, ~266 son
+  espera y ~93 son trabajo. El trabajo fijo por ítem (abrir menú, capturar,
+  cerrar) es ~1,3 s; cada página extra cuesta ~0,7 s a 350-900 ms.
+- **Decisión:** preset de throughput con `1-3 s` (mismo sesgo cuadrático,
+  promedio 1,54 s), `pageDelay` 150-350 ms, `maxPages` 3 por ítem y espera de
+  cierre 300→150 ms. Resultado teórico: 1,25 s de trabajo + 1,54 s de hueco =
+  **2,8 s por ítem**, o sea ~28 min para 600.
+- **Alternativa descartada:** bajar solo el hueco a 1,5 s y dejar `maxPages` 200.
+  Con la distribución real (2,63 páginas por ítem) el trabajo sería 2,44 s y no
+  entra en 30 min ni con hueco cero.
+- **Costo aceptado:** `maxPages` 3 corta la paginación profunda, así que
+  `diamond` (página 42) queda fuera del snapshot en este preset. Se recupera con
+  una corrida de `maxPages` 200 y lista corta.
+- **Clamps:** el piso de espera baja de 3 s a 1 s y el tope de búsquedas sube de
+  500 a 1000. Un segundo sigue estando muy por encima de un bucle; el piso
+  anterior bloqueaba el preset entero.
+- **Lista:** se reemplazó la lista viva por los **103 ids** que aparecen en las
+  311 capturas reales (incluye ítems custom del servidor como `diamond_spear`).
+  No se inventó ningún id. Los 600 no existen con evidencia: el catálogo de
+  DonutProfit tiene 61 ids y el registry de vanilla daría ítems que el servidor
+  no opera.
+- **Consecuencia:** `0.9.0`, 50 tests. El camino a 600 reales es el barrido del
+  libro sin búsqueda (slot 49), pendiente de medición.
