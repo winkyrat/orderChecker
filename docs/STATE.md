@@ -6,10 +6,10 @@
 ## Estado actual
 
 - Fecha: 2026-11-16.
-- Fase: **Fase 2 implementada y validada contra DonutProfit**. F8 dumpea la
-  pantalla y, si es el menú de órdenes, además escribe el export.
-- Build/tests: `gradlew build` verde. **24 tests**. Seis fixtures reales
-  (glass, diamond_block p1/p2, obsidian, búsqueda "diamond", búsqueda vacía).
+- Fase: **Fase 3 implementada (0.4.0)**, pendiente de probar en el juego.
+  F8 dumpea; F9 prende el escaneo autónomo.
+- Build/tests: `gradlew build` verde. **38 tests** (dumps, parser, snapshot,
+  config, ritmo, topes). Seis fixtures reales.
 - Aprobación del owner para Fase 1: **dada** (eligió modo C y aceptó el riesgo).
 
 ## Instalación en la máquina del owner (2026-11-13)
@@ -20,12 +20,13 @@ Perfil aislado, para no mezclar Wurst con DonutSMP:
 | --- | --- |
 | Perfil del launcher | `Donut Scanner 1.21.11` → versión `fabric-loader-0.20.1-1.21.11` |
 | Carpeta de juego | `%APPDATA%\.minecraft-donutscanner\` |
-| Mods | `donut-order-scanner-0.3.0.jar`, `fabric-api-0.141.6+1.21.11.jar` |
+| Mods | `donut-order-scanner-0.4.0.jar`, `fabric-api-0.141.6+1.21.11.jar` |
 | Dumps y exports | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\dumps\` |
+| Config del escaneo | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\scan.json` |
 | Fabric Loader | `0.20.1` (instalado con installer 1.1.2 en `.minecraft/versions`) |
 
-> `0.3.0` instalado el 2026-11-16 (hash verificado contra `build/libs/`). Nunca
-> dejar dos jars del mod en `mods/`: Fabric falla por mod id duplicado.
+> `0.4.0` instalado el 2026-11-16. Nunca dejar dos jars del mod en `mods/`:
+> Fabric falla por mod id duplicado.
 
 - Se copiaron `options.txt`, `optionsof.txt`, `servers.dat` y `servers.dat_old`
   al game dir para no perder ajustes ni servidores.
@@ -161,13 +162,14 @@ npx tsx scripts/load-orders.ts "<ruta>\orders.json"
 
 ## Próximo paso exacto
 
-1. **Instalar 0.3.0**: cerrar el juego, borrar
-   `mods/donut-order-scanner-0.2.0.jar` y copiar
-   `build/libs/donut-order-scanner-0.3.0.jar`. Nunca dejar los dos juntos.
-2. Probar en el juego con 0.3.0: `/order diamond_block` p1, F8; p2, F8. El
-   `orders.json` debe tener ~90 filas de `diamond_block`, no 1.
-3. Fase 3 (escaneo autónomo, modo C): diseño con jitter, pausas y topes, y
-   archivo de configuración para ajustar sin reiniciar.
+1. Probar la Fase 3 en el juego (ver `docs/AUTOSCAN.md`):
+   - abrir el perfil, entrar a DonutSMP, cerrar menús, apretar **F9**;
+   - mirar el chat/barra de acción y `logs/latest.log`;
+   - dejar que haga 2-3 ítems y cortar con F9;
+   - revisar que `orders.json` creció y que los exports son coherentes.
+2. Si algo falla, el log dice exactamente en qué paso: `/order`, apertura del
+   menú, lectura, click de página o cierre.
+3. Ajustar `scan.json` (ritmo, topes, lista de ítems) según lo que se vea.
 4. Si el cliente no entra con 1.21.11: recompilar para 26.3 (Fabric API
    `0.166.2+26.3`, Java 25, mappings de Mojang). El código es portable.
 

@@ -10,11 +10,19 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
 
-/** Client entrypoint. Until Phase 2 this only exposes the reconnaissance dump. */
+/**
+ * Client entrypoint.
+ *
+ * <p>F8 dumps the open screen (reconnaissance and manual capture). F9 toggles
+ * the autonomous scan. Both work while a menu is open, which is why they are
+ * handled per screen instead of relying on the vanilla key mapping loop.
+ */
 public final class OrderScannerClient implements ClientModInitializer {
     public static final String MOD_ID = "donut_order_scanner";
 
     private static KeyMapping dumpKey;
+    private static KeyMapping scanKey;
+    private static final AutoScanner SCANNER = new AutoScanner();
 
     @Override
     public void onInitializeClient() {
@@ -24,11 +32,21 @@ public final class OrderScannerClient implements ClientModInitializer {
                 GLFW.GLFW_KEY_F8,
                 KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "main"))));
 
+        scanKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+                "key.donut_order_scanner.scan",
+                InputConstants.Type.KEYSYM,
+                GLFW.GLFW_KEY_F9,
+                KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "main"))));
+
         // Vanilla only processes key mappings when no screen is open, but the
         // menus worth dumping are screens. Listen on the screen instead and
         // consume the press so the menu never sees it.
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) ->
                 ScreenKeyboardEvents.allowKeyPress(screen).register((currentScreen, context) -> {
+                    if (scanKey.matches(context)) {
+                        SCANNER.toggle(client);
+                        return false;
+                    }
                     if (!dumpKey.matches(context)) {
                         return true;
                     }
@@ -37,9 +55,13 @@ public final class OrderScannerClient implements ClientModInitializer {
                 }));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            while (scanKey.consumeClick()) {
+                SCANNER.toggle(client);
+            }
             while (dumpKey.consumeClick()) {
                 ScreenDumper.dump(client, client.screen);
             }
+            SCANNER.tick(client);
         });
     }
 }

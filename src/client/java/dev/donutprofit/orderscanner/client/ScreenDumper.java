@@ -13,6 +13,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.component.TypedDataComponent;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -20,7 +21,6 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.core.component.DataComponents;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,16 +30,31 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Read-only reconnaissance. It never clicks, never sends commands and never
- * modifies the menu: it copies what the client already received.
+ * Reads the open screen. It never clicks and never sends commands: it copies
+ * what the client already received. The autonomous scanner drives the menu from
+ * the outside and uses this class only to read it.
  */
 public final class ScreenDumper {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ScreenDumper.MOD_ID);
-    private static final String MOD_ID = OrderScannerClient.MOD_ID;
+    private static final Logger LOGGER = LoggerFactory.getLogger(OrderScannerClient.MOD_ID);
 
     private ScreenDumper() {
     }
 
+    /** What an export produced, so callers can report it without re-parsing. */
+    public record ExportResult(int rows, int warnings, Path capture, Path snapshot) {
+        public boolean isEmpty() {
+            return rows == 0;
+        }
+    }
+
+    public static Path dumpsDirectory() {
+        return FabricLoader.getInstance()
+                .getConfigDir()
+                .resolve(OrderScannerClient.MOD_ID)
+                .resolve("dumps");
+    }
+
+    /** Manual capture: raw dump for evidence plus the export. */
     public static void dump(Minecraft client, Screen screen) {
         try {
             if (screen == null) {
@@ -48,24 +63,14 @@ public final class ScreenDumper {
             }
 
             ScreenDump dump = capture(client, screen);
-            Path directory = FabricLoader.getInstance()
-                    .getConfigDir()
-                    .resolve(MOD_ID)
-                    .resolve("dumps");
+            Path directory = dumpsDirectory();
             Path file = DumpWriter.write(directory, dump.screenTitle(), dump);
             LOGGER.info("Wrote screen dump to {}", file);
 
-            OrderMenu menu = OrderMenuParser.parse(dump);
-            String extra = "";
-            if (!menu.orders().isEmpty()) {
-                OrderExport export = OrderExport.of(
-                        menu, dump.modVersion(), dump.capturedAt(), dump.screenTitle());
-                Path capture = OrderExportStore.writeCapture(directory, export);
-                Path snapshot = OrderExportStore.mergeIntoSnapshot(directory, export);
-                LOGGER.info("Exported {} orders to {} (snapshot {})",
-                        menu.orders().size(), capture, snapshot);
-                extra = " | " + menu.orders().size() + " orders -> " + snapshot.getFileName();
-            }
+            ExportResult result = exportAndStore(dump);
+            String extra = result.isEmpty()
+                    ? ""
+                    : " | " + result.rows() + " orders -> " + result.snapshot().getFileName();
 
             playFeedback(client, 1.6F);
             notifyPlayer(client, "Dump saved: " + file + extra);
@@ -77,16 +82,33 @@ public final class ScreenDumper {
     }
 
     /**
+     * Parses the dump and, when it contains orders, writes the per-capture file
+     * and merges it into {@code orders.json}.
+     */
+    public static ExportResult exportAndStore(ScreenDump dump) throws Exception {
+        OrderMenu menu = OrderMenuParser.parse(dump);
+        if (menu.orders().isEmpty()) {
+            return new ExportResult(0, menu.warnings().size(), null, null);
+        }
+        Path directory = dumpsDirectory();
+        OrderExport export = OrderExport.of(menu, dump.modVersion(), dump.capturedAt(), dump.screenTitle());
+        Path capture = OrderExportStore.writeCapture(directory, export);
+        Path snapshot = OrderExportStore.mergeIntoSnapshot(directory, export);
+        LOGGER.info("Exported {} orders to {} (snapshot {})", menu.orders().size(), capture, snapshot);
+        return new ExportResult(menu.orders().size(), menu.warnings().size(), capture, snapshot);
+    }
+
+    /**
      * Chat is hidden while a container screen is open, so a sound is the only
      * immediate feedback the player gets. Pitch tells success from failure.
      */
-    private static void playFeedback(Minecraft client, float pitch) {
+    static void playFeedback(Minecraft client, float pitch) {
         client.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, pitch));
     }
 
-    private static ScreenDump capture(Minecraft client, Screen screen) {
+    public static ScreenDump capture(Minecraft client, Screen screen) {
         String modVersion = FabricLoader.getInstance()
-                .getModContainer(MOD_ID)
+                .getModContainer(OrderScannerClient.MOD_ID)
                 .map(container -> container.getMetadata().getVersion().getFriendlyString())
                 .orElse("dev");
 
@@ -173,7 +195,7 @@ public final class ScreenDumper {
         return new SlotDump(-1, -1, -1, -1, "", "", 0, "", false, List.of(), List.of());
     }
 
-    private static void notifyPlayer(Minecraft client, String message) {
+    static void notifyPlayer(Minecraft client, String message) {
         if (client.player != null) {
             client.player.displayClientMessage(Component.literal("[DOS] " + message), false);
         }

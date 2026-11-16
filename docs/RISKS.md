@@ -50,6 +50,17 @@ hará spoof de brand, ocultamiento del mod, paquetes inventados ni movimiento
 sintético. La probabilidad de sanción sigue siendo real y no se puede medir
 desde este proyecto.
 
+### 1.3.1 Qué quedó implementado (0.4.0) y qué no mitiga
+
+Medidas presentes: delay al azar 12–35 s, pausa larga ocasional (5%), topes de
+40 búsquedas y 30 min, corte si el jugador se mueve, si la ventana pierde foco o
+si aparece otro menú, y máximo 3 páginas por ítem.
+
+Lo que **no** cambia el fondo del problema: el servidor ve un cliente que manda
+`/order` y clickea "Next page" en un patrón de máquina. Eso es exactamente lo que
+las reglas llaman macro. Ningún ajuste de ritmo lo convierte en humano. Los topes
+limitan la exposición y el daño si algo sale mal; no la eliminan.
+
 ### 1.4 Vectores de detección a asumir
 
 Aun en modo pasivo:

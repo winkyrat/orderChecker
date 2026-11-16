@@ -3,14 +3,15 @@
 Mod de cliente (Fabric) para leer los valores del menú `/orders` de DonutSMP y
 exportarlos en el formato que consume DonutProfit.
 
-Estado: Fase 1 implementada. El mod vuelca la pantalla abierta a JSON con F8.
-Falta probarlo en el juego y capturar los dumps reales.
+Estado: Fase 3 implementada en `0.4.0`. **F8** vuelca la pantalla abierta y
+exporta las órdenes; **F9** prende el escaneo autónomo.
 
 - Plan y fuentes: `docs/PLAN.md`
 - Riesgos: `docs/RISKS.md`
 - Preguntas pendientes: `docs/OPEN_QUESTIONS.md`
 - Estado operativo: `docs/STATE.md`
 - Cómo capturar: `docs/CAPTURE_GUIDE.md`
+- Escaneo autónomo: `docs/AUTOSCAN.md`
 
 ## Build
 
@@ -22,11 +23,12 @@ $env:JAVA_HOME="C:\Users\winky\OneDrive\Documentos\Default Project\donut-order-s
 .\gradlew.bat build
 ```
 
-Salida: `build/libs/donut-order-scanner-0.3.0.jar`.
+Salida: `build/libs/donut-order-scanner-0.4.0.jar`.
 
 Tests: `.\gradlew.bat test`.
 
 Advertencia: las reglas de DonutSMP prohíben macros, scripts y auto-clickers.
-El owner aprobó el modo autónomo para una fase posterior y aceptó el riesgo.
-El escaneo autónomo no se implementa todavía. No afiliado a Mojang, Microsoft
-ni DonutSMP.
+El owner aprobó el modo autónomo y aceptó el riesgo de ban. El escaneo manda
+comandos y clickea páginas reales; no falsifica paquetes ni oculta el mod, y no
+hay garantía de que pase desapercibido. No afiliado a Mojang, Microsoft ni
+DonutSMP.

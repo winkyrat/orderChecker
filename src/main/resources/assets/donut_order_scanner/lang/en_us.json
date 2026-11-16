@@ -1,4 +1,5 @@
 {
   "key.donut_order_scanner.dump": "Dump open screen",
+  "key.donut_order_scanner.scan": "Toggle autonomous scan",
   "category.donut_order_scanner": "Donut Order Scanner"
 }

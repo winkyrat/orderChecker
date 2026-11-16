@@ -34,6 +34,19 @@ public final class OrderMenuParser {
     private OrderMenuParser() {
     }
 
+    /**
+     * True when the title looks like the orders menu the scanner can read, e.g.
+     * {@code Orders (Page 1)}. Used to decide whether an open screen is ours
+     * before touching it.
+     */
+    public static boolean looksLikeOrdersMenu(String title) {
+        if (title == null) {
+            return false;
+        }
+        String trimmed = title.trim();
+        return trimmed.equals("Orders") || trimmed.startsWith("Orders (");
+    }
+
     public static OrderMenu parse(ScreenDump dump) {
         List<ParsedOrder> orders = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
