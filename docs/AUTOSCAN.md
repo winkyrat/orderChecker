@@ -15,6 +15,24 @@
    probabilidad `longPauseChancePercent` espera una pausa larga.
 8. Repite hasta el tope de búsquedas o de minutos.
 
+## Ojo: la búsqueda no es exacta
+
+`/order diamond` **no** devuelve `minecraft:diamond`. Devuelve todo ítem cuyo id
+o nombre contenga "diamond", ordenado de mayor a menor precio: leggings, boots,
+spear, sword, helmet, axe, chestplate. El diamante crudo (~$1-3K) queda al final
+de la lista, después de ~134 filas de gear de 1M–5.8M.
+
+Consecuencia: con `maxPages: 3` el ítem pedido puede no aparecer nunca. El log y
+la barra de acción lo dicen explícitamente:
+
+```
+[DOS] 1/40 diamond (no diamond in 3 pages) · next in 23s
+```
+
+Cuando pasa, esas filas de gear igual se guardan (sirven para esos ítems), pero
+el ítem pedido queda sin datos. Para bajar precios exactos de materiales baratos
+hay que paginar más profundo o encontrar una forma de búsqueda exacta.
+
 ## Cómo se prende
 
 - Entrá al mundo (no sirve en el menú principal).
@@ -78,12 +96,18 @@ En `logs/latest.log`:
 
 ```
 Scan started: 60 items, 12-35 s, cap 40 searches / 30 min
-Scan: /order diamond_block (search 1/40)
-Scan: minecraft:diamond_block page 1 -> 45 rows
-Scan: minecraft:diamond_block page 2 -> 45 rows
-Scan: /order glass (search 2/40)
+Scan: /order diamond (search 1/40)
+Scan: /order diamond page 1 -> 44 rows [minecraft:diamond_leggings, minecraft:diamond_boots, minecraft:diamond_spear]
+Scan: /order diamond page 2 -> 45 rows [minecraft:diamond_spear, minecraft:diamond_leggings, minecraft:diamond_boots, minecraft:diamond_sword]
+Scan: /order diamond page 3 -> 45 rows [minecraft:diamond_sword, minecraft:diamond_helmet, ...]
+WARN Scan: /order diamond never returned minecraft:diamond within 3 pages
 ...
+Scan stopped: stopped by key (7 searches, 938 rows)
 ```
+
+El log muestra **qué ítems vinieron**, no el que se pidió: si buscás `diamond` y
+en la página hay leggings, el log lo dice. `never returned` avisa que el ítem
+pedido quedó fuera de las páginas leídas.
 
 Y en `config/donut_order_scanner/dumps/` aparecen `orders-p1-*.json`,
 `orders-p2-*.json` y se actualiza `orders.json`.

@@ -6,11 +6,52 @@
 ## Estado actual
 
 - Fecha: 2026-11-16.
-- Fase: **Fase 3 implementada (0.4.0)**, pendiente de probar en el juego.
-  F8 dumpea; F9 prende el escaneo autónomo.
+- Fase: **Fase 3 probada en vivo (0.4.1)**. F8 dumpea; F9 prende el escaneo
+  autónomo. Primera corrida real completa: 7 búsquedas, 938 filas, sin fallos.
 - Build/tests: `gradlew build` verde. **38 tests** (dumps, parser, snapshot,
   config, ritmo, topes). Seis fixtures reales.
 - Aprobación del owner para Fase 1: **dada** (eligió modo C y aceptó el riesgo).
+- **Problema abierto:** el buscador de órdenes matchea por subcadena, así que
+  `/order diamond` no devuelve `minecraft:diamond`. Ver "Hallazgo de la
+  corrida 1" abajo.
+
+## Hallazgo de la corrida 1 (2026-11-16, 04:12–04:15)
+
+Corrida autónoma real, cortada a mano con F9 después de 7 búsquedas:
+
+```
+Scan started: 60 items, 12-35 s, cap 40 searches / 30 min
+Scan: /order diamond  (search 1/40)  -> 44 + 45 + 45 filas
+Scan: /order emerald  (search 2/40)  -> 45 + 45 + 45
+Scan: /order iron_ingot (3/40)       -> 45 + 45 + 45
+Scan: /order gold_ingot (4/40)       -> 45 + 45 + 39
+Scan: /order netherite_ingot (5/40)  -> 45 + 45 + 45
+Scan: /order coal (6/40)             -> 45 + 45 + 45
+Scan: /order redstone (7/40)         -> 45 + 45 + 45
+Scan stopped: stopped by key (7 searches, 938 rows)
+```
+
+Validado contra DonutProfit (`npx tsx scripts/load-orders.ts`, dry run):
+**1118 filas / 37 ítems, 0 descartadas, 1 warning**. Los 37 ítems incluyen las
+capturas manuales anteriores (glass, obsidian, diamond_block).
+
+Lo importante: **`/order <nombre>` matchea el id o el nombre como subcadena y
+ordena de mayor a menor precio.** Consecuencias medidas:
+
+| Búsqueda | Qué devolvió | ¿Apareció el ítem pedido? |
+| --- | --- | --- |
+| `diamond` | diamond_leggings/boots/spear/sword/helmet/axe/chestplate, 134 filas de 1M–5.8M | **No.** `minecraft:diamond` (~$1-3K) queda después de todo el gear. |
+| `emerald` | deepslate_emerald_ore, emerald_ore, emerald_block | Sí, en la página 3 (27 filas). |
+| `coal` | coal_block, coal_ore, deepslate_coal_ore | Sí, 55 filas. |
+| `redstone` | redstone_block/ore/torch, deepslate_redstone_ore, **comparator, repeater** | Sí, 30 filas. |
+| `iron_ingot` | solo iron_ingot | Sí, 135 filas (3 páginas). |
+
+Dos datos nuevos del servidor:
+
+- El match también usa el **nombre visible**: `redstone` devolvió `comparator` y
+  `repeater` ("Redstone Comparator", "Redstone Repeater").
+- Los ítems baratos son los últimos de la lista, porque el orden es por precio
+  descendente. Los ítems que más interesan para crafteo son justo esos.
 
 ## Instalación en la máquina del owner (2026-11-13)
 
@@ -20,13 +61,15 @@ Perfil aislado, para no mezclar Wurst con DonutSMP:
 | --- | --- |
 | Perfil del launcher | `Donut Scanner 1.21.11` → versión `fabric-loader-0.20.1-1.21.11` |
 | Carpeta de juego | `%APPDATA%\.minecraft-donutscanner\` |
-| Mods | `donut-order-scanner-0.4.1.jar`, `fabric-api-0.141.6+1.21.11.jar` |
+| Mods | `donut-order-scanner-0.4.2.jar`, `fabric-api-0.141.6+1.21.11.jar` |
 | Dumps y exports | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\dumps\` |
 | Config del escaneo | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\scan.json` |
 | Fabric Loader | `0.20.1` (instalado con installer 1.1.2 en `.minecraft/versions`) |
 
-> `0.4.1` instalado el 2026-11-16. Nunca dejar dos jars del mod en `mods/`:
-> Fabric falla por mod id duplicado.
+> `0.4.2` compilado el 2026-11-16 (log honesto + aviso de ítem no encontrado).
+> Pendiente de copiar a `mods/` cuando el juego esté cerrado: el jar `0.4.1`
+> sigue instalado y bloqueado mientras el cliente corre. Nunca dejar dos jars
+> del mod en `mods/`: Fabric falla por mod id duplicado.
 
 ### Incidente 0.4.0 (2026-11-16)
 
@@ -177,13 +220,18 @@ npx tsx scripts/load-orders.ts "<ruta>\orders.json"
 
 ## Próximo paso exacto
 
-1. Probar la Fase 3 en el juego (ver `docs/AUTOSCAN.md`):
-   - abrir el perfil, entrar a DonutSMP, cerrar menús, apretar **F9**;
-   - mirar el chat/barra de acción y `logs/latest.log`;
-   - dejar que haga 2-3 ítems y cortar con F9;
-   - revisar que `orders.json` creció y que los exports son coherentes.
-2. Si algo falla, el log dice exactamente en qué paso: `/order`, apertura del
-   menú, lectura, click de página o cierre.
+1. **Resolver la cobertura de búsqueda** (ver "Hallazgo de la corrida 1").
+   Antes de subir `maxPages` a ciegas, una prueba barata decide todo:
+   - en el juego, escribir a mano `/order minecraft:diamond` y apretar **F8**;
+   - si vuelven solo filas de `minecraft:diamond`, el prefijo `minecraft:` fuerza
+     match exacto y cada búsqueda pasa a costar 1 página;
+   - si vuelve el mismo gear de siempre, hay que paginar más profundo o aceptar
+     cobertura parcial.
+   Segunda prueba en el mismo viaje: `/order` sin argumentos + F8. Si abre la
+   lista completa del servidor, se puede paginar una sola vez en vez de mandar
+   60 comandos.
+2. Con esa evidencia, ajustar `AutoScanner` (forma del comando o `maxPages`) y
+   documentar el resultado acá y en `docs/AUTOSCAN.md`.
 3. Ajustar `scan.json` (ritmo, topes, lista de ítems) según lo que se vea.
 4. Si el cliente no entra con 1.21.11: recompilar para 26.3 (Fabric API
    `0.166.2+26.3`, Java 25, mappings de Mojang). El código es portable.
@@ -194,6 +242,9 @@ npx tsx scripts/load-orders.ts "<ruta>\orders.json"
 - B2: resuelto. El owner aceptó el riesgo y eligió modo autónomo (C).
 - B3: lista de ítems. Provisional: los 60 del seed de DonutProfit.
 - B8: resuelto. Modo C, con jitter/pausas/topes y sin evasión.
+- B9: **cobertura de búsqueda**. Un nombre genérico devuelve todas las variantes
+  ordenadas por precio descendente, así que el ítem barato pedido puede quedar
+  fuera de las 3 páginas. Sin resolver: `minecraft:diamond` no se capturó.
 - Dumps reales: **desbloqueado**. Hay tres capturas reales como fixtures.
 
 ## Comandos previstos

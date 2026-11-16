@@ -54,6 +54,7 @@ public final class AutoScanner {
     private int totalRows;
     private String currentItem = "";
     private String lastFingerprint = "";
+    private boolean targetSeen;
 
     public boolean isRunning() {
         return phase != Phase.OFF;
@@ -176,6 +177,7 @@ public final class AutoScanner {
         currentItem = config.items().get(itemIndex % config.items().size());
         page = 1;
         lastFingerprint = "";
+        targetSeen = false;
 
         String name = shortName(currentItem);
         client.player.connection.sendCommand("order " + name);
@@ -215,7 +217,12 @@ public final class AutoScanner {
 
         failures = 0;
         totalRows += result.rows();
-        LOGGER.info("Scan: {} page {} -> {} rows", currentItem, page, result.rows());
+        // Log what the menu actually contained, not the item that was searched:
+        // a generic search returns every variant whose id or name matches.
+        LOGGER.info("Scan: /order {} page {} -> {} rows {}", shortName(currentItem), page, result.rows(), result.itemIds());
+        if (result.itemIds().contains(currentItem)) {
+            targetSeen = true;
+        }
 
         AbstractContainerMenu menu = container.getMenu();
         String fingerprint = fingerprint(menu);
@@ -240,6 +247,7 @@ public final class AutoScanner {
     private void finishItem(Minecraft client) {
         session.recordItem();
         itemIndex++;
+        int pagesRead = page;
         page = 1;
 
         long now = System.currentTimeMillis();
@@ -251,11 +259,18 @@ public final class AutoScanner {
         phase = Phase.WAIT;
         deadline = now + schedule.nextDelayMillis(config);
 
+        String note = "";
+        if (!targetSeen) {
+            note = " (no " + shortName(currentItem) + " in " + pagesRead + " pages)";
+            LOGGER.warn("Scan: /order {} never returned {} within {} pages",
+                    shortName(currentItem), currentItem, pagesRead);
+        }
+
         if (client.player != null) {
             long seconds = Math.max(1L, (deadline - now) / 1000L);
             client.player.displayClientMessage(Component.literal(
                     "[DOS] " + session.items() + "/" + config.maxItemsPerSession()
-                            + " " + shortName(currentItem) + " · next in " + seconds + "s"), true);
+                            + " " + shortName(currentItem) + note + " · next in " + seconds + "s"), true);
         }
     }
 

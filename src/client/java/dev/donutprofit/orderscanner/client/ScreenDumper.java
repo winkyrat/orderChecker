@@ -8,6 +8,7 @@ import dev.donutprofit.orderscanner.parse.OrderExport;
 import dev.donutprofit.orderscanner.parse.OrderExportStore;
 import dev.donutprofit.orderscanner.parse.OrderMenu;
 import dev.donutprofit.orderscanner.parse.OrderMenuParser;
+import dev.donutprofit.orderscanner.parse.ParsedOrder;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
@@ -40,8 +41,15 @@ public final class ScreenDumper {
     private ScreenDumper() {
     }
 
-    /** What an export produced, so callers can report it without re-parsing. */
-    public record ExportResult(int rows, int warnings, Path capture, Path snapshot) {
+    /**
+     * What an export produced, so callers can report it without re-parsing.
+     * {@code itemIds} holds the distinct items found on the page, in slot order.
+     * The scanner uses it to notice that a generic search (for example
+     * {@code /order diamond}) returned variants and never reached the item it
+     * asked for.
+     */
+    public record ExportResult(
+            int rows, int warnings, Path capture, Path snapshot, List<String> itemIds) {
         public boolean isEmpty() {
             return rows == 0;
         }
@@ -88,14 +96,29 @@ public final class ScreenDumper {
     public static ExportResult exportAndStore(ScreenDump dump) throws Exception {
         OrderMenu menu = OrderMenuParser.parse(dump);
         if (menu.orders().isEmpty()) {
-            return new ExportResult(0, menu.warnings().size(), null, null);
+            return new ExportResult(0, menu.warnings().size(), null, null, List.of());
         }
         Path directory = dumpsDirectory();
         OrderExport export = OrderExport.of(menu, dump.modVersion(), dump.capturedAt(), dump.screenTitle());
         Path capture = OrderExportStore.writeCapture(directory, export);
         Path snapshot = OrderExportStore.mergeIntoSnapshot(directory, export);
         LOGGER.info("Exported {} orders to {} (snapshot {})", menu.orders().size(), capture, snapshot);
-        return new ExportResult(menu.orders().size(), menu.warnings().size(), capture, snapshot);
+        return new ExportResult(
+                menu.orders().size(),
+                menu.warnings().size(),
+                capture,
+                snapshot,
+                distinctItemIds(menu));
+    }
+
+    private static List<String> distinctItemIds(OrderMenu menu) {
+        List<String> ids = new ArrayList<>();
+        for (ParsedOrder order : menu.orders()) {
+            if (!ids.contains(order.itemId())) {
+                ids.add(order.itemId());
+            }
+        }
+        return List.copyOf(ids);
     }
 
     /**
