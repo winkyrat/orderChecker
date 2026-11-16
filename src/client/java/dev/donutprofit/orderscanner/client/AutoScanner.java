@@ -4,6 +4,7 @@ import dev.donutprofit.orderscanner.dump.ScreenDump;
 import dev.donutprofit.orderscanner.parse.OrderMenuParser;
 import dev.donutprofit.orderscanner.scan.ScanConfig;
 import dev.donutprofit.orderscanner.scan.ScanConfigStore;
+import dev.donutprofit.orderscanner.scan.ScanCursor;
 import dev.donutprofit.orderscanner.scan.ScanSchedule;
 import dev.donutprofit.orderscanner.scan.ScanSession;
 import net.fabricmc.loader.api.FabricLoader;
@@ -19,6 +20,7 @@ import net.minecraft.world.item.ItemStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Locale;
 import java.util.Random;
@@ -56,6 +58,9 @@ public final class AutoScanner {
     private String lastFingerprint = "";
     private boolean targetSeen;
     private int pagesThisItem;
+    private boolean itemInProgress;
+    private boolean itemTruncated;
+    private String truncationReason = "";
 
     public boolean isRunning() {
         return phase != Phase.OFF;
@@ -91,12 +96,17 @@ public final class AutoScanner {
         }
 
         session = new ScanSession(config, System.currentTimeMillis());
-        itemIndex = 0;
+        itemIndex = ScanCursor.load(configDirectory(), config.items().size());
         page = 1;
         failures = 0;
         totalRows = 0;
         currentItem = "";
         lastFingerprint = "";
+        targetSeen = false;
+        pagesThisItem = 0;
+        itemInProgress = false;
+        itemTruncated = false;
+        truncationReason = "";
         phase = Phase.WAIT;
         deadline = 0L;
 
@@ -104,9 +114,10 @@ public final class AutoScanner {
         ScreenDumper.notifyPlayer(client, "Scan on: " + config.items().size()
                 + " items, cap " + config.maxItemsPerSession() + " searches / "
                 + config.maxSessionMinutes() + " min. F9 stops.");
-        LOGGER.info("Scan started: {} items, {}-{} s, cap {} searches / {} min",
+        LOGGER.info("Scan started: {} items, {}-{} s, cap {} searches / {} min, starting at {}",
                 config.items().size(), config.minDelaySeconds(), config.maxDelaySeconds(),
-                config.maxItemsPerSession(), config.maxSessionMinutes());
+                config.maxItemsPerSession(), config.maxSessionMinutes(),
+                config.items().get(itemIndex));
     }
 
     public void stop(Minecraft client, String reason) {
@@ -116,9 +127,15 @@ public final class AutoScanner {
         phase = Phase.OFF;
         closeScreen(client);
         String summary = session == null ? "" : " (" + session.items() + " searches, " + totalRows + " rows)";
-        ScreenDumper.notifyPlayer(client, "Scan off: " + reason + summary);
+        String cut = "";
+        if (itemInProgress) {
+            cut = "; " + shortName(currentItem) + " was cut after " + pagesThisItem
+                    + " pages, its price band may be incomplete";
+        }
+        ScreenDumper.notifyPlayer(client, "Scan off: " + reason + summary + cut);
         ScreenDumper.playFeedback(client, 0.7F);
-        LOGGER.info("Scan stopped: {}{}", reason, summary);
+        LOGGER.info("Scan stopped: {}{}{}", reason, summary, cut);
+        itemInProgress = false;
     }
 
     public void tick(Minecraft client) {
@@ -131,7 +148,10 @@ public final class AutoScanner {
         }
 
         long now = System.currentTimeMillis();
-        if (session.shouldStop(now)) {
+        // While the item is closing, let finishItem() run first: it records the
+        // search and reports the real stop reason. Stopping here would drop that
+        // bookkeeping and make a completed item look like it never happened.
+        if (phase != Phase.CLOSE_WAIT && session.shouldStop(now)) {
             stop(client, session.stopReason(now));
             return;
         }
@@ -180,6 +200,9 @@ public final class AutoScanner {
         lastFingerprint = "";
         targetSeen = false;
         pagesThisItem = 0;
+        itemInProgress = true;
+        itemTruncated = false;
+        truncationReason = "";
 
         String name = shortName(currentItem);
         client.player.connection.sendCommand("order " + name);
@@ -237,7 +260,10 @@ public final class AutoScanner {
         lastFingerprint = fingerprint;
 
         int nextSlot = nextPageSlot(menu);
-        boolean canPage = nextSlot >= 0 && page < config.maxPages() && !samePage;
+        boolean hasNext = nextSlot >= 0 && !samePage;
+        boolean pageCapHit = hasNext && page >= config.maxPages();
+        boolean budgetHit = hasNext && session.pagesExhausted();
+        boolean canPage = hasNext && !pageCapHit && !budgetHit;
 
         // The list is sorted by price, highest first, so the requested item is
         // the cheapest part of its own band and appears last. Once it shows up,
@@ -245,7 +271,7 @@ public final class AutoScanner {
         // its band, and everything below belongs to other items.
         boolean targetBandClosed = targetSeen && !pageHasTarget;
 
-        if (canPage && !targetBandClosed && !session.pagesExhausted()) {
+        if (canPage && !targetBandClosed) {
             client.gameMode.handleInventoryMouseClick(
                     menu.containerId, nextSlot, 0, ClickType.PICKUP, client.player);
             page++;
@@ -254,8 +280,20 @@ public final class AutoScanner {
             return;
         }
 
-        if (canPage && !targetBandClosed) {
-            LOGGER.warn("Scan: page budget reached after {} pages", session.pages());
+        // A band that was still open when a cap kicked in is partial data, and
+        // the report must say so instead of pretending the item was not there.
+        if (!targetBandClosed) {
+            if (pageCapHit) {
+                itemTruncated = true;
+                truncationReason = "the " + config.maxPages() + " page per-item cap";
+            } else if (budgetHit) {
+                itemTruncated = true;
+                truncationReason = "the " + session.pages() + " page session budget";
+            }
+            if (itemTruncated) {
+                LOGGER.warn("Scan: /order {} cut after {} pages by {} before its band ended",
+                        shortName(currentItem), pagesThisItem, truncationReason);
+            }
         }
 
         closeScreen(client);
@@ -268,6 +306,12 @@ public final class AutoScanner {
         itemIndex++;
         int pagesRead = pagesThisItem;
         page = 1;
+        itemInProgress = false;
+        persistCursor();
+
+        // Report before the stop check: a budget that ran out during this item
+        // still has to say whether the item was found and how far it got.
+        String note = reportOutcome(pagesRead);
 
         long now = System.currentTimeMillis();
         if (session.shouldStop(now)) {
@@ -278,21 +322,46 @@ public final class AutoScanner {
         phase = Phase.WAIT;
         deadline = now + schedule.nextDelayMillis(config);
 
-        String note = "";
-        if (targetSeen) {
-            LOGGER.info("Scan: /order {} done -> {} pages, {} found",
-                    shortName(currentItem), pagesRead, currentItem);
-        } else {
-            note = " (no " + shortName(currentItem) + " in " + pagesRead + " pages)";
-            LOGGER.warn("Scan: /order {} never returned {} within {} pages",
-                    shortName(currentItem), currentItem, pagesRead);
-        }
-
         if (client.player != null) {
             long seconds = Math.max(1L, (deadline - now) / 1000L);
             client.player.displayClientMessage(Component.literal(
                     "[DOS] " + session.items() + "/" + config.maxItemsPerSession()
                             + " " + shortName(currentItem) + note + " · next in " + seconds + "s"), true);
+        }
+    }
+
+    /** Logs the real outcome of one search and returns the short action-bar note. */
+    private String reportOutcome(int pagesRead) {
+        if (targetSeen && !itemTruncated) {
+            LOGGER.info("Scan: /order {} done -> {} pages, {} found",
+                    shortName(currentItem), pagesRead, currentItem);
+            return "";
+        }
+        if (targetSeen) {
+            LOGGER.warn("Scan: /order {} found {} but its band was cut after {} pages by {}",
+                    shortName(currentItem), currentItem, pagesRead, truncationReason);
+            return " (" + shortName(currentItem) + " band cut at " + pagesRead + " pages)";
+        }
+        if (itemTruncated) {
+            LOGGER.warn("Scan: /order {} did not find {} in {} pages; {} stopped it",
+                    shortName(currentItem), currentItem, pagesRead, truncationReason);
+            return " (" + shortName(currentItem) + " cut at " + pagesRead + " pages)";
+        }
+        LOGGER.warn("Scan: /order {} never returned {} within {} pages",
+                shortName(currentItem), currentItem, pagesRead);
+        return " (no " + shortName(currentItem) + " in " + pagesRead + " pages)";
+    }
+
+    /** Saves where the next session should continue, so the whole list gets covered. */
+    private void persistCursor() {
+        int size = config.items().size();
+        if (size == 0) {
+            return;
+        }
+        try {
+            ScanCursor.save(configDirectory(), itemIndex % size);
+        } catch (IOException error) {
+            LOGGER.warn("Scan: could not save the item cursor", error);
         }
     }
 
@@ -302,6 +371,7 @@ public final class AutoScanner {
         closeScreen(client);
         itemIndex++;
         page = 1;
+        itemInProgress = false;
 
         if (failures >= MAX_CONSECUTIVE_FAILURES) {
             stop(client, reason + " three times in a row");

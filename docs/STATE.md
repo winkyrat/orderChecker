@@ -7,14 +7,15 @@
 
 - Fecha: 2026-11-16.
 - Fase: **Fase 3 probada en vivo**. Primera corrida real completa: 7 búsquedas,
-  938 filas, sin fallos. En `0.5.0` el escaneo pagina hasta encontrar el ítem
-  pedido en vez de leer un número fijo de páginas.
-- Build/tests: `gradlew build` verde. **40 tests** (dumps, parser, snapshot,
-  config, ritmo, topes de ítems/páginas). Siete fixtures reales.
+  938 filas, sin fallos. En `0.6.0` el escaneo pagina hasta encontrar el ítem
+  pedido sin un tope práctico de páginas, siempre con `Most Per Item`.
+- Build/tests: `gradlew build` verde. **45 tests** (dumps, parser, snapshot,
+  config, ritmo, topes de ítems/páginas, cursor de ítems). Siete fixtures reales.
 - Aprobación del owner para Fase 1: **dada** (eligió modo C y aceptó el riesgo).
 - **Problema abierto:** el buscador de órdenes matchea por subcadena y ordena
-  por precio descendente, así que el ítem barato aparece último. Mitigado con
-  paginación dirigida; falta medir cuántas páginas necesita `diamond`.
+  por precio descendente, así que el ítem barato aparece último. Medido: unos
+  40-50 páginas para `diamond`. Resuelto paginando profundo, con el presupuesto
+  de páginas de la sesión como único freno real.
 
 ## Hallazgo de la corrida 1 (2026-11-16, 04:12–04:15)
 
@@ -107,8 +108,22 @@ Conclusiones:
 - Aparecieron ítems nuevos del servidor: `minecraft:diamond_nautilus_armor` y
   `minecraft:diamond_hoe`.
 
-Decisión pendiente con el owner: modo único (`Recently Listed` para todo, o
-`Most Per Item` para todo) o híbrido por sesión con listas disjuntas.
+Decisión del owner (2026-11-16): **siempre `Most Per Item`**, sin tope práctico
+de páginas, aunque cueste 40-50 clics por ítem. `Recently Listed` se descarta
+porque devuelve lo último publicado y cualquiera puede poner una orden muy por
+debajo del precio real; esos datos no sirven para calcular profit. Solo
+`iron`, `emerald`, `diamond` y `redstone` son caros de recorrer.
+
+Implementado en `0.6.0`:
+
+- `maxPages` subió a **200** por ítem y pasó a ser solo una guarda contra un
+  bucle; el final natural es el final de la lista o el cierre de la banda.
+- `maxPagesPerSession` subió a **400**: es el control real de cuántos clics
+  permite una sesión.
+- Si un tope corta una banda a medias, el log lo dice (`cut after N pages by
+  ...`) en vez de reportar el ítem como inexistente.
+- `scan-cursor.txt` guarda el próximo índice, así una sesión de 40 búsquedas
+  sobre 60 ítems ya no deja los últimos 20 sin escanear.
 
 ## Instalación en la máquina del owner (2026-11-13)
 
@@ -276,18 +291,17 @@ npx tsx scripts/load-orders.ts "<ruta>\orders.json"
 
 ## Próximo paso exacto
 
-1. **Decidir el modo de escaneo** (ver "Medición de profundidad"). Tres opciones:
-   - `Recently Listed` para todo: alcanza todos los ítems en 2-4 páginas, pero
-     los precios son una muestra reciente.
-   - `Most Per Item` para todo: mejor precio arriba y libros completos en los
-     nombres únicos, pero los genéricos (`diamond`, `emerald`, `coal`,
-     `redstone`, `glass`, ...) quedan inalcanzables.
-   - Híbrido por sesión: `Most Per Item` para los nombres únicos y `Recently
-     Listed` para los genéricos, con listas disjuntas para que el merge no
-     choque. Requiere que el owner cambie el filtro entre sesiones y que el mod
-     detecte el modo activo y avise si no coincide.
-2. Implementar la opción elegida y documentarla en `docs/AUTOSCAN.md`.
-3. Si el cliente no entra con 1.21.11: recompilar para 26.3 (Fabric API
+1. **Instalar `0.6.0`** (cerrar el juego, borrar el jar viejo, copiar el nuevo)
+   y actualizar el `scan.json` vivo a `maxPages: 200` / `maxPagesPerSession: 400`.
+2. **Correr una sesión completa** con la lista de 60 y `Most Per Item`. Anotar
+   del log las páginas de cada ítem (`done -> N pages`). Esperado: 1-3 páginas
+   para los nombres propios y 30-60 para `iron`, `emerald`, `diamond` y
+   `redstone`.
+3. Validar el `orders.json` resultante contra DonutProfit
+   (`npx tsx scripts/load-orders.ts`, dry run). Confirmar que `minecraft:diamond`
+   ahora tiene filas con sus precios reales (no los $10-11K de una muestra
+   reciente, sino la escalera completa de su banda).
+4. Si el cliente no entra con 1.21.11: recompilar para 26.3 (Fabric API
    `0.166.2+26.3`, Java 25, mappings de Mojang). El código es portable.
 
 ## Bloqueos
@@ -296,10 +310,10 @@ npx tsx scripts/load-orders.ts "<ruta>\orders.json"
 - B2: resuelto. El owner aceptó el riesgo y eligió modo autónomo (C).
 - B3: lista de ítems. Provisional: los 60 del seed de DonutProfit.
 - B8: resuelto. Modo C, con jitter/pausas/topes y sin evasión.
-- B9: **cobertura de búsqueda**. Medido: `Most Per Item` no encuentra
-  `minecraft:diamond` ni en 30 páginas (está ~p40-50); `Recently Listed` lo
-  encuentra en la página 1 con 3 órdenes. La escalera completa de nombres
-  genéricos no es alcanzable a costo razonable. Falta elegir el modo.
+- B9: **resuelto**. `Most Per Item` es el modo único. `diamond` vive cerca de la
+  página 40-50 y se llega paginando profundo; el costo se acota con
+  `maxPagesPerSession`. `Recently Listed` descartado por dar datos no
+  representativos.
 - Dumps reales: **desbloqueado**. Siete fixtures reales.
 
 ## Comandos previstos

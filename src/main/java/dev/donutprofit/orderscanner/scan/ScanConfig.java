@@ -13,6 +13,12 @@ import java.util.Set;
  * 12-35 seconds, an occasional long pause, and a hard stop after 40 items or
  * 30 minutes. Nothing here is a guarantee of undetectability; the caps exist to
  * limit exposure, not to hide it.
+ *
+ * <p>The order list is always read with the "Most Per Item" filter, sorted by
+ * price. A cheap item can sit dozens of pages below the expensive gear that
+ * shares its name, so {@code maxPages} is only a runaway guard: the real stop
+ * is the end of the list or the end of the item's price band. The session-wide
+ * page budget is what actually bounds the clicking.
  */
 public record ScanConfig(
         List<String> items,
@@ -102,8 +108,8 @@ public record ScanConfig(
                 300,
                 40,
                 30,
-                12,
-                250,
+                200,
+                400,
                 350,
                 900,
                 4000);
@@ -135,7 +141,7 @@ public record ScanConfig(
                 pauseMax,
                 clamp(maxItemsPerSession, 1, 500),
                 clamp(maxSessionMinutes, 1, 240),
-                clamp(maxPages, 1, 30),
+                clamp(maxPages, 1, 500),
                 clamp(maxPagesPerSession, 1, 2000),
                 clamp(pageDelayMinMillis, 150, 10000),
                 clamp(pageDelayMaxMillis, pageDelayMinMillis, 10000),

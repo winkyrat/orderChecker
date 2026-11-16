@@ -25,8 +25,8 @@ class ScanConfigStoreTest {
         assertEquals(ScanConfig.CATALOGUE_ITEMS.size(), config.items().size());
         assertEquals(12, config.minDelaySeconds());
         assertEquals(35, config.maxDelaySeconds());
-        assertEquals(12, config.maxPages());
-        assertEquals(250, config.maxPagesPerSession());
+        assertEquals(200, config.maxPages());
+        assertEquals(400, config.maxPagesPerSession());
         assertTrue(Files.readString(file).contains("\"items\""));
     }
 
@@ -42,13 +42,13 @@ class ScanConfigStoreTest {
     @Test
     void clampsValuesThatWouldBeDangerous() {
         ScanConfig config = ScanConfigStore.read(
-                "{\"minDelaySeconds\": 0, \"maxDelaySeconds\": 1, \"maxPages\": 99,"
+                "{\"minDelaySeconds\": 0, \"maxDelaySeconds\": 1, \"maxPages\": 9999,"
                         + " \"maxSessionMinutes\": 100000, \"longPauseChancePercent\": 500}")
                 .sanitized();
 
         assertEquals(3, config.minDelaySeconds(), "never below three seconds");
         assertEquals(3, config.maxDelaySeconds(), "max is raised to match the minimum");
-        assertEquals(30, config.maxPages());
+        assertEquals(500, config.maxPages());
         assertEquals(240, config.maxSessionMinutes());
         assertEquals(100, config.longPauseChancePercent());
     }

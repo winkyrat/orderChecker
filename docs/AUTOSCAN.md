@@ -1,16 +1,18 @@
 # Escaneo autónomo (Fase 3)
 
-> Implementado en `0.4.0`. Pagina hasta encontrar el ítem desde `0.5.0`.
-> Tecla **F9** para prender/apagar.
+> Implementado en `0.4.0`. Pagina hasta encontrar el ítem desde `0.5.0` y sin
+> límite práctico de páginas desde `0.6.0`. Tecla **F9** para prender/apagar.
 
 ## Qué hace, paso a paso
 
-1. Toma el próximo ítem de `scan.json`.
+1. Toma el próximo ítem de `scan.json`, continuando donde terminó la sesión
+   anterior (`scan-cursor.txt`).
 2. Manda `/order <ítem>` como si lo escribieras vos.
 3. Espera el menú (hasta `screenTimeoutMillis`). Si no aparece, salta el ítem.
 4. Lee la página sin tocar nada y escribe el export.
 5. Mira si el ítem pedido está en esa página. Si no está y hay **Next page**,
-   lo clickea y repite, hasta `maxPages`.
+   lo clickea y repite hasta que aparezca o hasta que la lista se termine.
+   `maxPages` (200) es solo una guarda contra un bucle.
 6. Cuando el ítem aparece, sigue leyendo mientras las páginas lo sigan
    conteniendo, y corta en la primera que ya no lo tenga: ahí termina su banda
    de precios.
@@ -26,19 +28,33 @@ o nombre contenga "diamond", ordenado de mayor a menor precio: leggings, boots,
 spear, sword, helmet, axe, chestplate. El diamante crudo (~$1-3K) queda al final
 de la lista, después de ~134 filas de gear de 1M–5.8M.
 
-Consecuencia: con `maxPages: 3` el ítem pedido puede no aparecer nunca. Por eso
-el escaneo **pagina hasta encontrarlo** (hasta `maxPages`) en vez de leer un
-número fijo de páginas, y corta cuando su banda de precios termina. El log y la
-barra de acción dicen qué pasó:
+Consecuencia: el ítem barato aparece **decenas de páginas** después. Medido con
+`diamond` en `Most Per Item`: p1 `5.3M–2M`, p10 `500K`, p20 `200K`,
+p30 `56K–50.5K`; el diamante crudo (`$10-11K`) cae cerca de la **página 40-50**.
+Por eso el escaneo **pagina hasta encontrarlo**, sin un tope práctico: lee hasta
+que aparece, sigue mientras su banda de precios continúe y corta en la primera
+página que ya no lo tiene. `maxPages` (200) es solo una guarda contra un bucle;
+el final natural es el final de la lista.
+
+El modo es **siempre `Most Per Item`**. `Recently Listed` se descartó: encuentra
+el ítem en 2-4 páginas, pero devuelve una muestra de lo último publicado y
+cualquiera puede poner una orden muy por debajo del precio real. La escalera de
+precios que usa DonutProfit necesita el orden por precio, no por fecha.
+
+Solo cuatro nombres del catálogo son genéricos y caros de recorrer:
+`iron`, `emerald`, `diamond` y `redstone`. El resto tiene nombre propio y
+aparece en 1-3 páginas.
+
+El log y la barra de acción dicen qué pasó:
 
 ```
 [DOS] 1/40 diamond · next in 23s
-[DOS] 1/40 diamond (no diamond in 12 pages) · next in 23s
+[DOS] 1/40 diamond (no diamond in 200 pages) · next in 23s
 ```
 
-Cuando no aparece, esas filas de gear igual se guardan (sirven para esos ítems),
-pero el ítem pedido queda sin datos. Para eso está `maxPages`: subilo si un ítem
-barato vive más profundo.
+Si un tope corta la búsqueda antes de terminar la banda, el log lo dice con
+`cut after N pages by ...` y el ítem queda marcado como incompleto, no como
+"no existe".
 
 Atajos descartados con capturas reales (2026-11-16):
 
@@ -74,8 +90,8 @@ editá el archivo, apretá F9 dos veces y toma los cambios sin reiniciar.
 | `longPauseMaxSeconds` | 300 | Pausa larga máxima. |
 | `maxItemsPerSession` | 40 | Tope de búsquedas por sesión. |
 | `maxSessionMinutes` | 30 | Tope de duración de la sesión. |
-| `maxPages` | 12 | Tope duro de páginas por ítem. El escaneo corta antes si ya encontró el ítem. |
-| `maxPagesPerSession` | 250 | Tope de páginas leídas en toda la sesión. Es el control directo de cuántos clics se permiten. |
+| `maxPages` | 200 | Guarda contra un bucle. El escaneo corta antes si encuentra el ítem o si la lista termina. |
+| `maxPagesPerSession` | 400 | Tope de páginas leídas en toda la sesión. Es el control real de cuántos clics se permiten. |
 | `pageDelayMinMillis` | 350 | Espera mínima tras "Next page". |
 | `pageDelayMaxMillis` | 900 | Espera máxima tras "Next page". |
 | `screenTimeoutMillis` | 4000 | Cuánto esperar a que abra el menú. |
@@ -83,13 +99,18 @@ editá el archivo, apretá F9 dos veces y toma los cambios sin reiniciar.
 Valores fuera de rango se recortan solos (nunca menos de 3 s entre búsquedas,
 nunca más de 240 min de sesión). Un `scan.json` roto vuelve a los defaults.
 
+`scan-cursor.txt`, al lado de `scan.json`, guarda el índice del próximo ítem.
+Así una sesión de 40 búsquedas sobre 60 ítems no deja los últimos 20 sin
+escanear: la siguiente arranca donde terminó la anterior. Borralo si querés
+volver a empezar por el primer ítem de la lista.
+
 ## Cuándo se corta solo
 
 | Situación | Mensaje |
 | --- | --- |
 | Tres fallos seguidos | `Scan off: <motivo> three times in a row` |
 | Tope de búsquedas o minutos | `Scan off: reached the 40 search cap` |
-| Tope de páginas | `Scan off: reached the 250 page cap` |
+| Tope de páginas | `Scan off: reached the 400 page cap` |
 | Aparece otro menú que no es el de órdenes | `Scan off: another menu is open` |
 | Movés, atacás o usás el ítem en mano | `Scan off: you started playing` |
 | La ventana pierde el foco | `Scan off: the window lost focus` |
@@ -112,19 +133,21 @@ nunca más de 240 min de sesión). Un `scan.json` roto vuelve a los defaults.
 En `logs/latest.log`:
 
 ```
-Scan started: 60 items, 12-35 s, cap 40 searches / 30 min
+Scan started: 60 items, 12-35 s, cap 40 searches / 30 min, starting at minecraft:diamond
 Scan: /order diamond (search 1/40)
-Scan: /order diamond page 1 -> 44 rows [minecraft:diamond_leggings, minecraft:diamond_boots, minecraft:diamond_spear]
-Scan: /order diamond page 2 -> 45 rows [minecraft:diamond_spear, minecraft:diamond_leggings, minecraft:diamond_boots, minecraft:diamond_sword]
-Scan: /order diamond page 3 -> 45 rows [minecraft:diamond_sword, minecraft:diamond_helmet, ...]
-WARN Scan: /order diamond never returned minecraft:diamond within 3 pages
+Scan: /order diamond page 1 -> 45 rows [minecraft:diamond_helmet, minecraft:diamond_block, ...]
+Scan: /order diamond page 2 -> 45 rows [minecraft:diamond_boots, minecraft:diamond_pickaxe, ...]
+...
+Scan: /order diamond page 44 -> 45 rows [minecraft:diamond_sword, minecraft:diamond, ...]
+Scan: /order diamond page 45 -> 45 rows [minecraft:diamond_sword, minecraft:diamond_pickaxe, ...]
+Scan: /order diamond done -> 45 pages, minecraft:diamond found
 ...
 Scan stopped: stopped by key (7 searches, 938 rows)
 ```
 
 El log muestra **qué ítems vinieron**, no el que se pidió: si buscás `diamond` y
-en la página hay leggings, el log lo dice. `never returned` avisa que el ítem
-pedido quedó fuera de las páginas leídas.
+en la página hay leggings, el log lo dice. `done -> N pages` confirma cuánto
+costó llegar al ítem; `never returned` avisa que la lista se terminó sin él.
 
 Y en `config/donut_order_scanner/dumps/` aparecen `orders-p1-*.json`,
 `orders-p2-*.json` y se actualiza `orders.json`.
