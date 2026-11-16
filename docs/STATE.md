@@ -92,11 +92,9 @@ Perfil aislado, para no mezclar Wurst con DonutSMP:
 | Config del escaneo | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\scan.json` |
 | Fabric Loader | `0.20.1` (instalado con installer 1.1.2 en `.minecraft/versions`) |
 
-> `0.5.0` compilado el 2026-11-16 (paginación dirigida al ítem, tope de páginas
-> por sesión, log honesto). Pendiente de copiar a `mods/` cuando el juego esté
-> cerrado: el jar `0.4.1` sigue instalado y bloqueado mientras el cliente corre.
-> `0.4.2` quedó superada sin instalarse. Nunca dejar dos jars del mod en `mods/`:
-> Fabric falla por mod id duplicado.
+> `0.5.0` instalado el 2026-11-16 (hash verificado contra `build/libs/`).
+> Incluye los arreglos de `0.4.2`, que nunca llegó a instalarse. Nunca dejar dos
+> jars del mod en `mods/`: Fabric falla por mod id duplicado.
 
 ### Incidente 0.4.0 (2026-11-16)
 
