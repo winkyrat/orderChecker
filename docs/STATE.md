@@ -170,7 +170,7 @@ Perfil aislado, para no mezclar Wurst con DonutSMP:
 | --- | --- |
 | Perfil del launcher | `Donut Scanner 1.21.11` → versión `fabric-loader-0.20.1-1.21.11` |
 | Carpeta de juego | `%APPDATA%\.minecraft-donutscanner\` |
-| Mods | `donut-order-scanner-0.10.0.jar` (instalado), `fabric-api-0.141.6+1.21.11.jar` |
+| Mods | `donut-order-scanner-0.10.1.jar` (instalado), `fabric-api-0.141.6+1.21.11.jar` |
 | Dumps y exports | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\dumps\` |
 | Config del escaneo | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\scan.json` |
 | Cursor de ítems | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\scan-cursor.txt` |
@@ -187,10 +187,11 @@ Perfil aislado, para no mezclar Wurst con DonutSMP:
 > se borró `scan-cursor.txt` para reconstruir el catálogo desde el índice 0.
 > Nunca dejar dos jars del mod en `mods/`: Fabric falla por mod id duplicado.
 >
-> `0.10.1` **construido** el 2026-11-16 (hash `7D6FCE28…51A8`) pero **todavía no
-> instalado**: el juego estaba abierto y bloqueaba el jar viejo. Al cerrarlo:
-> borrar `donut-order-scanner-0.10.0.jar` de `mods\` y copiar el `0.10.1`. Agrega
-> el reintento de menú vacío en página 1.
+> `0.10.1` **instalado** el 2026-11-16 (hash `7D6FCE28…51A8` verificado contra
+> `build/libs/` y contra el jar copiado). Reemplazó a `0.10.0`; en `mods/` solo
+> quedan `0.10.1` y `fabric-api`. Agrega el reintento de menú vacío en página 1:
+> si la página 1 abre sin slots, relee una vez a los 200 ms antes de creer que
+> no hay resultados.
 
 ### Incidente 0.4.0 (2026-11-16)
 
@@ -357,10 +358,9 @@ npx tsx scripts/load-orders.ts "<ruta>\orders.json"
 
 ## Próximo paso exacto
 
-1. **Instalar `0.10.1`** (construido, pendiente por el juego abierto): cerrar el
-   juego, borrar `donut-order-scanner-0.10.0.jar` de `mods\`, copiar
-   `donut-order-scanner-0.10.1.jar`. Es la única versión que reintenta un menú
-   vacío en página 1.
+1. **`0.10.1` instalado** el 2026-11-16. Próxima corrida: verificar en vivo que
+   `netherite_boots` (u otro menú que abra vacío en página 1) ya no quede como
+   "no encontrado" con el reintento de 200 ms.
 2. **Integración con DonutProfit: hecha (2026-11-16).** El `orders.json` de la
    corrida 0.10.0 se validó y se cargó en Neon con `pnpm sync-orders --commit`:
    2.632 órdenes / 106 ítems, 2.439 filas nuevas y 193 duplicadas por

@@ -34,6 +34,7 @@
 | S15 | 2026-11-16 | Filas incidentales | incidental, fallback, merge, pagina1, 0.10.0 |
 | S16 | 2026-11-16 | Revisión de la corrida 0.10.0 | corrida, 248s, 2632filas, lore, menu-vacio, 0.10.1 |
 | S17 | 2026-11-16 | Datos reales en DonutProfit | neon, sync-orders, orders-only, bids, pricingBasis, source-isolation |
+| S18 | 2026-11-16 | Instalación de 0.10.1 | install, 0.10.1, hash, mods, empty-menu, retry |
 
 ---
 
@@ -269,3 +270,15 @@
   reemplazar la estimación por bids. Instalar `0.10.1` sigue pendiente.
 - **Keywords:** neon, sync-orders, watch-orders, orders-only, bids, asks,
   pricingBasis, source-isolation.
+
+## S18 — Instalación de 0.10.1
+
+- **Qué se hizo:** con el juego cerrado, se borró `donut-order-scanner-0.10.0.jar`
+  de `mods\` y se copió `donut-order-scanner-0.10.1.jar`. Hash SHA-256
+  `7D6FCE283A088D3016E32DE0660345EBEF28338AEF019B1A6C1C9C2FA4FA51A8`, idéntico
+  al de `build/libs/`. En `mods/` solo quedan `0.10.1` y `fabric-api`.
+- **Por qué:** `0.10.1` reintenta una vez a los 200 ms cuando la página 1 abre
+  vacía, el bug que dejó a `netherite_boots` como "no encontrado" pese a tener
+  146 órdenes incidentales.
+- **Pendiente:** validar el reintento en vivo con un menú que abra vacío.
+- **Keywords:** install, 0.10.1, hash, mods, empty-menu, retry.
