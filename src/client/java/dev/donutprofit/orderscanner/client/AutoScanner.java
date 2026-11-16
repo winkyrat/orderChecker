@@ -29,8 +29,10 @@ import java.util.Random;
  * Autonomous scan, phase 3.
  *
  * <p>It sends {@code /order <item>} as the player would, waits for the menu,
- * reads it, clicks "Next page" while one exists, closes it and waits a jittered
- * delay before the next item. It does not fake packets, does not move the
+ * reads it, clicks "Next page" until the requested item appears, closes it and
+ * waits a jittered delay before the next item. It stops at the first page that
+ * contains the item, because the list is sorted by price and that page already
+ * holds its most expensive orders. It does not fake packets, does not move the
  * player, does not hide itself and does not claim to be undetectable: the only
  * thing it avoids is a perfectly regular cadence.
  *
@@ -265,13 +267,10 @@ public final class AutoScanner {
         boolean budgetHit = hasNext && session.pagesExhausted();
         boolean canPage = hasNext && !pageCapHit && !budgetHit;
 
-        // The list is sorted by price, highest first, so the requested item is
-        // the cheapest part of its own band and appears last. Once it shows up,
-        // keep reading until a page has none of it: that page marks the end of
-        // its band, and everything below belongs to other items.
-        boolean targetBandClosed = targetSeen && !pageHasTarget;
-
-        if (canPage && !targetBandClosed) {
+        // The list is sorted by price, highest first, so the first page that
+        // contains the requested item already holds its most expensive orders.
+        // One page is enough: stop here instead of walking the whole band.
+        if (canPage && !pageHasTarget) {
             client.gameMode.handleInventoryMouseClick(
                     menu.containerId, nextSlot, 0, ClickType.PICKUP, client.player);
             page++;
@@ -280,9 +279,9 @@ public final class AutoScanner {
             return;
         }
 
-        // A band that was still open when a cap kicked in is partial data, and
-        // the report must say so instead of pretending the item was not there.
-        if (!targetBandClosed) {
+        // The item never showed up and a cap stopped the search: say so instead
+        // of pretending the list simply ended.
+        if (!pageHasTarget) {
             if (pageCapHit) {
                 itemTruncated = true;
                 truncationReason = "the " + config.maxPages() + " page per-item cap";
@@ -291,8 +290,8 @@ public final class AutoScanner {
                 truncationReason = "the " + session.pages() + " page session budget";
             }
             if (itemTruncated) {
-                LOGGER.warn("Scan: /order {} cut after {} pages by {} before its band ended",
-                        shortName(currentItem), pagesThisItem, truncationReason);
+                LOGGER.warn("Scan: /order {} cut after {} pages by {} before finding {}",
+                        shortName(currentItem), pagesThisItem, truncationReason, currentItem);
             }
         }
 
@@ -332,15 +331,10 @@ public final class AutoScanner {
 
     /** Logs the real outcome of one search and returns the short action-bar note. */
     private String reportOutcome(int pagesRead) {
-        if (targetSeen && !itemTruncated) {
+        if (targetSeen) {
             LOGGER.info("Scan: /order {} done -> {} pages, {} found",
                     shortName(currentItem), pagesRead, currentItem);
             return "";
-        }
-        if (targetSeen) {
-            LOGGER.warn("Scan: /order {} found {} but its band was cut after {} pages by {}",
-                    shortName(currentItem), currentItem, pagesRead, truncationReason);
-            return " (" + shortName(currentItem) + " band cut at " + pagesRead + " pages)";
         }
         if (itemTruncated) {
             LOGGER.warn("Scan: /order {} did not find {} in {} pages; {} stopped it",

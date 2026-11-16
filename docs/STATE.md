@@ -7,8 +7,9 @@
 
 - Fecha: 2026-11-16.
 - Fase: **Fase 3 probada en vivo**. Primera corrida real completa: 7 búsquedas,
-  938 filas, sin fallos. En `0.6.0` el escaneo pagina hasta encontrar el ítem
-  pedido sin un tope práctico de páginas, siempre con `Most Per Item`.
+  938 filas, sin fallos. En `0.7.0` el escaneo pagina hasta encontrar el ítem
+  pedido y corta en la primera página que lo contiene, siempre con
+  `Most Per Item`.
 - Build/tests: `gradlew build` verde. **45 tests** (dumps, parser, snapshot,
   config, ritmo, topes de ítems/páginas, cursor de ítems). Siete fixtures reales.
 - Aprobación del owner para Fase 1: **dada** (eligió modo C y aceptó el riesgo).
@@ -110,21 +111,29 @@ Conclusiones:
   `minecraft:diamond_hoe`.
 
 Decisión del owner (2026-11-16): **siempre `Most Per Item`**, sin tope práctico
-de páginas, aunque cueste 40-50 clics por ítem. `Recently Listed` se descarta
-porque devuelve lo último publicado y cualquiera puede poner una orden muy por
-debajo del precio real; esos datos no sirven para calcular profit. Solo
-`iron`, `emerald`, `diamond` y `redstone` son caros de recorrer.
+de páginas para *encontrar* el ítem. `Recently Listed` se descarta porque
+devuelve lo último publicado y cualquiera puede poner una orden muy por debajo
+del precio real. Solo `iron`, `emerald`, `diamond` y `redstone` son caros de
+recorrer.
 
-Implementado en `0.6.0`:
+Implementado en `0.6.0` y ajustado en `0.7.0`:
 
-- `maxPages` subió a **200** por ítem y pasó a ser solo una guarda contra un
-  bucle; el final natural es el final de la lista o el cierre de la banda.
-- `maxPagesPerSession` subió a **400**: es el control real de cuántos clics
-  permite una sesión.
-- Si un tope corta una banda a medias, el log lo dice (`cut after N pages by
-  ...`) en vez de reportar el ítem como inexistente.
+- `maxPages` subió a **200** por ítem y es solo una guarda contra un bucle.
+- Se pagina hasta que el ítem aparece y **se corta en esa misma página**: al
+  estar ordenada por precio, ya trae sus órdenes más caras. No se lee la banda
+  completa.
+- `maxPagesPerSession` (**400**) es el control real de cuántos clics permite
+  una sesión.
+- Si un tope corta la búsqueda antes de encontrar el ítem, el log lo dice
+  (`cut after N pages by ...`) en vez de reportarlo como inexistente.
 - `scan-cursor.txt` guarda el próximo índice, así una sesión de 40 búsquedas
-  sobre 60 ítems ya no deja los últimos 20 sin escanear.
+  sobre 60 ítems no deja los últimos 20 sin escanear.
+
+Medición que motivó el corte en una página (corrida del 2026-11-16, 05:14):
+`diamond` apareció en la **página 43** con `$11.200`; su banda seguía **32
+páginas más** hasta órdenes de `$1`, incluida una de 1.000 millones de
+diamantes a `$1`. La parte útil (`$11.200 → $8.000`) estaba en las primeras
+páginas de la banda.
 
 ## Instalación en la máquina del owner (2026-11-13)
 
@@ -134,15 +143,19 @@ Perfil aislado, para no mezclar Wurst con DonutSMP:
 | --- | --- |
 | Perfil del launcher | `Donut Scanner 1.21.11` → versión `fabric-loader-0.20.1-1.21.11` |
 | Carpeta de juego | `%APPDATA%\.minecraft-donutscanner\` |
-| Mods | `donut-order-scanner-0.6.0.jar`, `fabric-api-0.141.6+1.21.11.jar` |
+| Mods | `donut-order-scanner-0.7.0.jar`, `fabric-api-0.141.6+1.21.11.jar` |
 | Dumps y exports | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\dumps\` |
 | Config del escaneo | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\scan.json` |
 | Cursor de ítems | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\scan-cursor.txt` |
 | Fabric Loader | `0.20.1` (instalado con installer 1.1.2 en `.minecraft/versions`) |
 
-> `0.6.0` instalado el 2026-11-16 (hash `79C70ECC…805C` verificado contra
-> `build/libs/`). `scan.json` vivo actualizado a `maxPages: 200` y
-> `maxPagesPerSession: 400`. Nunca dejar dos jars del mod en `mods/`: Fabric
+> `0.7.0` instalado el 2026-11-16 (hash `D5721501…EDBF` verificado contra
+> `build/libs/`). `scan.json` vivo con `maxPages: 200` y
+> `maxPagesPerSession: 400`. El `orders.json` de la corrida de 75 páginas quedó
+> respaldado como `dumps/orders.backup-before-onepage.json` y se reinició el
+> snapshot, porque esa corrida guardó órdenes de `$1` que la política de una
+> página ya no captura. También se borró `scan-cursor.txt` para que la próxima
+> sesión arranque en `diamond`. Nunca dejar dos jars del mod en `mods/`: Fabric
 > falla por mod id duplicado.
 
 ### Incidente 0.4.0 (2026-11-16)
@@ -294,16 +307,15 @@ npx tsx scripts/load-orders.ts "<ruta>\orders.json"
 
 ## Próximo paso exacto
 
-1. **Instalar `0.6.0`** (cerrar el juego, borrar el jar viejo, copiar el nuevo)
-   y actualizar el `scan.json` vivo a `maxPages: 200` / `maxPagesPerSession: 400`.
-2. **Correr una sesión completa** con la lista de 60 y `Most Per Item`. Anotar
-   del log las páginas de cada ítem (`done -> N pages`). Esperado: 1-3 páginas
-   para los nombres propios y 30-60 para `iron`, `emerald`, `diamond` y
-   `redstone`.
+1. **Instalar `0.7.0`** (cerrar el juego, borrar el jar viejo, copiar el nuevo).
+   El `scan.json` vivo ya tiene `maxPages: 200` / `maxPagesPerSession: 400`.
+2. **Correr una sesión** con la lista de 60 y `Most Per Item`. El log debe
+   mostrar `done -> 43 pages, minecraft:diamond found` y **cortar ahí**, sin
+   seguir a las páginas 44-75. Esperado: 1 página para los nombres propios y
+   20-50 para `iron`, `emerald`, `diamond` y `redstone`.
 3. Validar el `orders.json` resultante contra DonutProfit
    (`npx tsx scripts/load-orders.ts`, dry run). Confirmar que `minecraft:diamond`
-   ahora tiene filas con sus precios reales (no los $10-11K de una muestra
-   reciente, sino la escalera completa de su banda).
+   tiene sus órdenes más caras (`$11.200` y alrededores) y ninguna de `$1`.
 4. Si el cliente no entra con 1.21.11: recompilar para 26.3 (Fabric API
    `0.166.2+26.3`, Java 25, mappings de Mojang). El código es portable.
 

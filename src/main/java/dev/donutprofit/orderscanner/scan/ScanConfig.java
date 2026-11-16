@@ -17,8 +17,8 @@ import java.util.Set;
  * <p>The order list is always read with the "Most Per Item" filter, sorted by
  * price. A cheap item can sit dozens of pages below the expensive gear that
  * shares its name, so {@code maxPages} is only a runaway guard: the real stop
- * is the end of the list or the end of the item's price band. The session-wide
- * page budget is what actually bounds the clicking.
+ * is the first page that contains the item, which already holds its most
+ * expensive orders. The session-wide page budget bounds the clicking.
  */
 public record ScanConfig(
         List<String> items,

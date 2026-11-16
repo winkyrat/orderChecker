@@ -13,9 +13,8 @@
 5. Mira si el ítem pedido está en esa página. Si no está y hay **Next page**,
    lo clickea y repite hasta que aparezca o hasta que la lista se termine.
    `maxPages` (200) es solo una guarda contra un bucle.
-6. Cuando el ítem aparece, sigue leyendo mientras las páginas lo sigan
-   conteniendo, y corta en la primera que ya no lo tenga: ahí termina su banda
-   de precios.
+6. Cuando el ítem aparece, **corta ahí**: esa página ya trae sus órdenes más
+   caras porque la lista está ordenada por precio. No sigue leyendo la banda.
 7. Cierra el menú.
 8. Espera un tiempo al azar entre `minDelaySeconds` y `maxDelaySeconds`; con
    probabilidad `longPauseChancePercent` espera una pausa larga.
@@ -30,11 +29,15 @@ de la lista, después de ~134 filas de gear de 1M–5.8M.
 
 Consecuencia: el ítem barato aparece **decenas de páginas** después. Medido con
 `diamond` en `Most Per Item`: p1 `5.3M–2M`, p10 `500K`, p20 `200K`,
-p30 `56K–50.5K`; el diamante crudo (`$10-11K`) cae cerca de la **página 40-50**.
-Por eso el escaneo **pagina hasta encontrarlo**, sin un tope práctico: lee hasta
-que aparece, sigue mientras su banda de precios continúe y corta en la primera
-página que ya no lo tiene. `maxPages` (200) es solo una guarda contra un bucle;
-el final natural es el final de la lista.
+p30 `56K–50.5K`; el diamante crudo (`$11.2K`) apareció en la **página 43**.
+Por eso el escaneo **pagina hasta encontrarlo**, sin un tope práctico, y corta
+en esa misma página: al estar ordenada por precio, ya contiene sus órdenes más
+caras. `maxPages` (200) es solo una guarda contra un bucle.
+
+No conviene seguir leyendo la banda completa: en esa corrida la banda de
+`diamond` siguió 32 páginas más, hasta órdenes de $1 (incluida una de 1.000
+millones de diamantes a $1). La parte útil, `$11.200 → $8.000`, ya estaba en
+las primeras páginas.
 
 El modo es **siempre `Most Per Item`**. `Recently Listed` se descartó: encuentra
 el ítem en 2-4 páginas, pero devuelve una muestra de lo último publicado y
@@ -138,9 +141,9 @@ Scan: /order diamond (search 1/40)
 Scan: /order diamond page 1 -> 45 rows [minecraft:diamond_helmet, minecraft:diamond_block, ...]
 Scan: /order diamond page 2 -> 45 rows [minecraft:diamond_boots, minecraft:diamond_pickaxe, ...]
 ...
-Scan: /order diamond page 44 -> 45 rows [minecraft:diamond_sword, minecraft:diamond, ...]
-Scan: /order diamond page 45 -> 45 rows [minecraft:diamond_sword, minecraft:diamond_pickaxe, ...]
-Scan: /order diamond done -> 45 pages, minecraft:diamond found
+Scan: /order diamond page 42 -> 45 rows [minecraft:diamond_pickaxe, minecraft:diamond_sword, ...]
+Scan: /order diamond page 43 -> 45 rows [minecraft:diamond_pickaxe, minecraft:diamond_helmet, minecraft:diamond_block, minecraft:diamond_leggings, minecraft:diamond_chestplate, minecraft:diamond, ...]
+Scan: /order diamond done -> 43 pages, minecraft:diamond found
 ...
 Scan stopped: stopped by key (7 searches, 938 rows)
 ```
