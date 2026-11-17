@@ -36,6 +36,7 @@
 | S17 | 2026-11-16 | Datos reales en DonutProfit | neon, sync-orders, orders-only, bids, pricingBasis, source-isolation |
 | S18 | 2026-11-16 | Instalación de 0.10.1 | install, 0.10.1, hash, mods, empty-menu, retry |
 | S19 | 2026-11-16 | Filtro de ítems encantados | enchantments, plain-items, filter, 0.10.2 |
+| S20 | 2026-11-16 | Re-escaneo 0.10.2 y sync a Neon | rescan, 1989filas, 95items, skipped, neon, sync, 8800 |
 
 ---
 
@@ -304,3 +305,20 @@
 - **Pendiente:** re-escanear y `pnpm sync-orders --commit` para purgar de Neon
   las filas encantadas de la corrida `0.10.0`.
 - **Keywords:** enchantments, plain-items, filter, skipped, page-1, 0.10.2.
+
+## S20 — Re-escaneo 0.10.2 y sync a Neon
+
+- **Pedido:** hacer los pasos 2 y 3 (verificar el log y sincronizar).
+- **Log:** `donut_order_scanner 0.10.2` cargado. 88 avisos `Skipped N enchanted
+  order rows` en 44 páginas (cada una se releyó por el reintento de página 1).
+- **Snapshot:** 103 búsquedas en 252 s, 132 exports, 3.363 filas de página,
+  **1.989 filas / 95 ítems**. Gear encantado en 0 filas (`diamond_sword`,
+  leggings, boots, helmet, chestplate, pickaxe, axe, spear, `enchanted_book`);
+  `elytra` conserva 11 filas planas ($550M–$583M).
+- **Neon:** `pnpm sync-orders --commit` → 1.989 órdenes, **+1.844 filas nuevas**,
+  145 colapsadas por `dedupe_key`. El sync estampa todas las filas con el
+  `observedAt` del snapshot y la vista lee solo esa observación, así que las
+  filas viejas quedan como historial y no se leen.
+- **Web verificada (desktop 1440):** 95 ítems, 5 crafteos accionables, 0 flips;
+  mejor Block of Diamond a **$8.800/craft** (8,3 %). Diamond Sword ya no aparece.
+- **Keywords:** rescan, 1989filas, 95items, skipped, neon, sync, 8800, 0.10.2.

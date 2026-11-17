@@ -23,6 +23,10 @@
   (`netherite_boots`) y ningún ítem mezcló filas incidentales con escaneo directo.
 - **Hallazgo:** el buscador matchea también **lore y encantamientos** (ver
   `docs/AUTOSCAN.md`), por eso las materias primas baratas quedan profundo.
+- **Corrida 0.10.2 (2026-11-16, 22:58:53–23:03:05):** 103 búsquedas en 252 s,
+  132 exports, 3.363 filas de página, snapshot de **1.989 filas / 95 ítems**.
+  Se omitieron las filas encantadas; la web quedó con **5 crafteos** y 0 flips
+  (detalle en "Filtro de encantamientos").
 
 ## Filtro de encantamientos (`0.10.2`, 2026-11-16)
 
@@ -46,8 +50,17 @@ pidió que, **por ahora, el programa tome solo objetos no encantados**.
 - Fixtures: `orders-global-page1.json` pasa de 45 a 9 filas (36 elytras
   encantadas); `orders-diamond-search-page1.json` pasa de 44 a 0 (todas las
   variantes de armadura están encantadas).
-- **Pendiente:** re-escanear con `0.10.2` y `pnpm sync-orders --commit` para
-  reemplazar en Neon las filas encantadas que quedaron de la corrida `0.10.0`.
+- **Hecho (2026-11-16, 22:58:53–23:03:05):** corrida con `0.10.2`: 103
+  búsquedas, 132 exports, 3.363 filas de página y snapshot de **1.989 filas /
+  95 ítems**. 44 páginas tenían variantes encantadas (88 avisos `Skipped ...`
+  porque el reintento de página 1 relee la página). `diamond_sword`,
+  `diamond_leggings`, `diamond_boots`, `diamond_helmet`, `diamond_chestplate`,
+  `diamond_pickaxe`, `diamond_axe`, `diamond_spear` y `enchanted_book` quedaron
+  en **0 filas**; `elytra` conservó **11 filas planas** ($550M–$583M).
+  `pnpm sync-orders --commit`: 1.989 órdenes, **+1.844 filas nuevas** (145
+  colapsadas por `dedupe_key`). La web muestra 95 ítems, **5 crafteos**
+  accionables y 0 flips; el mejor es Block of Diamond con **$8.800/craft**
+  (8,3 %), ya sin las espadas encantadas.
 
 ## Verificación en vivo de `0.7.0` (2026-11-16, 05:25)
 
@@ -391,13 +404,11 @@ npx tsx scripts/load-orders.ts "<ruta>\orders.json"
 
 ## Próximo paso exacto
 
-1. **`0.10.2` instalado** el 2026-11-16. Próxima corrida: re-escanear con F9
-   para reemplazar las filas encantadas que quedaron en `orders.json` (la corrida
-   `0.10.0` las guardó). Verificar en el log los warnings `Skipped N enchanted
-   order rows` y que una búsqueda como `diamond` no siga paginando cuando todas
-   sus variantes están encantadas. Después, `pnpm sync-orders --commit` en
-   `../oreboard` para purgar Neon. De paso, verificar que `netherite_boots` (u
-   otro menú que abra vacío en página 1) ya no quede como "no encontrado".
+1. **Hecho:** `0.10.2` re-escaneó y se sincronizó a Neon (ver "Filtro de
+   encantamientos"). La web ya no muestra espadas encantadas como crafteo
+   rentable: quedó Block of Diamond con $8.800/craft. Siguiente verificación:
+   confirmar que cortar en la primera página con variantes encantadas no deja
+   sin precio un ítem que sí tenga órdenes planas en páginas más profundas.
 2. **Integración con DonutProfit: hecha (2026-11-16).** El `orders.json` de la
    corrida 0.10.0 se validó y se cargó en Neon con `pnpm sync-orders --commit`:
    2.632 órdenes / 106 ítems, 2.439 filas nuevas y 193 duplicadas por

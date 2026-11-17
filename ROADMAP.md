@@ -56,8 +56,9 @@
 - [x] Excluir ítems encantados (0.10.2): el parser descarta filas con
       `enchantments`/`stored_enchantments`; el autoscan conserva el id para cortar
       la paginación y una página 1 vacía retira las filas viejas de esa búsqueda.
-- [ ] Re-escanear con 0.10.2 y `pnpm sync-orders --commit` para purgar de Neon
-      las filas encantadas de la corrida 0.10.0.
+- [x] Re-escanear con 0.10.2 y `pnpm sync-orders --commit` (2026-11-16):
+      snapshot de 1.989 filas / 95 ítems; +1.844 filas en Neon; la web quedó con
+      5 crafteos y 0 flips, sin las espadas encantadas.
 - [ ] **Lista definitiva** desde el grafo de recetas (materias primas + ítems
       crafteados). La aporta el owner; es el bloqueo B3.
 - [ ] Investigar el filtro del menú (slot 47) para acortar la paginación de las
