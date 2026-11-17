@@ -299,7 +299,7 @@
 - **Tests:** 56 verdes. `orders-global-page1.json` pasa de 45 a 9 filas (36
   elytras encantadas); `orders-diamond-search-page1.json` pasa de 44 a 0 (todas
   las variantes de armadura encantadas).
-- **Instalado:** `0.10.2` en `mods/`, hash `9AB9A9E5E47DCD4ECF660A30E7737AA726D565A9EC908CFACB29A3213467DF24`,
+- **Instalado:** `0.10.2` en `mods/`, hash `57C786F5C47F72FEEE1A604FF33B1BBB16573998603E3E6242C79B9A19FAAB9A`,
   reemplazó a `0.10.1`.
 - **Pendiente:** re-escanear y `pnpm sync-orders --commit` para purgar de Neon
   las filas encantadas de la corrida `0.10.0`.

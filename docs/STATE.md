@@ -36,7 +36,10 @@ pidió que, **por ahora, el programa tome solo objetos no encantados**.
 - Las filas omitidas se cuentan y generan warning; no se descartan en silencio.
 - El id del ítem omitido se conserva en `OrderMenu.skippedItemIds` para que el
   autoscan vea que la página contenía el objetivo y corte en vez de paginar 200
-  páginas. `distinctItemIds` los incluye.
+  páginas. `distinctItemIds` los incluye. Si el ítem solo se vende encantado,
+  queda **sin precio** (faltante visible) en vez de un profit inflado.
+- El log del cliente imprime `Skipped N enchanted order rows on '<título>' page P`
+  para poder verificarlo en vivo.
 - Si una página 1 queda vacía por el filtro, `exportAndStore` fusiona un export
   vacío con el `searchedItemId` explícito para retirar las filas viejas de esa
   búsqueda (`mergeIntoSnapshot(..., searchedItemId)`).
@@ -216,7 +219,7 @@ Perfil aislado, para no mezclar Wurst con DonutSMP:
 > si la página 1 abre sin slots, relee una vez a los 200 ms antes de creer que
 > no hay resultados.
 >
-> `0.10.2` **instalado** el 2026-11-16 (hash `9AB9A9E5…DF24` verificado contra
+> `0.10.2` **instalado** el 2026-11-16 (hash `57C786F5…AB9A` verificado contra
 > `build/libs/` y contra el jar copiado). Reemplazó a `0.10.1`; en `mods/` solo
 > quedan `0.10.2` y `fabric-api`. Descarta las filas de ítems encantados y retira
 > las filas viejas cuando una página 1 queda vacía por el filtro. El juego estaba

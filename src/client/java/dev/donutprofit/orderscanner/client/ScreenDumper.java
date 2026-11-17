@@ -111,6 +111,10 @@ public final class ScreenDumper {
      */
     public static ExportResult exportAndStore(ScreenDump dump, String searchedItemId) throws Exception {
         OrderMenu menu = OrderMenuParser.parse(dump);
+        if (!menu.skippedItemIds().isEmpty()) {
+            LOGGER.info("Skipped {} enchanted order rows on '{}' page {}",
+                    menu.skippedItemIds().size(), dump.screenTitle(), menu.page());
+        }
         if (menu.orders().isEmpty()) {
             // An empty page 1 is still an observation: retire the previous rows
             // of that search so an all-enchanted page does not leave stale

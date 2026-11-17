@@ -343,5 +343,9 @@
 - **Alternativa descartada:** filtrar por lore (los nombres de encantamiento
   aparecen en el lore). El lore puede cambiar de formato y no distingue un
   encantamiento de una línea decorativa; los componentes son el dato real.
+- **Corte de paginación:** una página que solo tiene variantes encantadas cuenta
+  como "el ítem apareció" y el escaneo corta ahí. Se prefiere no guardar precio a
+  paginar hasta 200 páginas por un ítem que quizá no tenga órdenes planas; el
+  faltante se ve como "sin datos", no como profit inflado.
 - **Consecuencia:** `0.10.2`, 56 tests (3 nuevos de parser y 1 de merge). El
   snapshot actual y Neon todavía tienen filas encantadas hasta re-escanear.
