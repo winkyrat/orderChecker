@@ -64,6 +64,14 @@ filas, el escaneo espera 200 ms y la vuelve a leer una vez antes de creer que la
 búsqueda no tiene resultados. Un resultado genuinamente vacío solo cuesta ese
 único reintento.
 
+**Solo ítems sin encantar (0.10.2).** Una fila cuyo ítem trae
+`minecraft:enchantments` o `minecraft:stored_enchantments` con entradas se
+descarta: el encantamiento mueve el precio y falsea el profit de crafteo. El id
+descartado se conserva para que el escaneo sepa que la página sí contenía el
+objetivo y corte en vez de paginar hasta el tope; si la página 1 queda vacía por
+el filtro, se retiran las filas viejas de esa búsqueda. Los warnings
+`Skipped N enchanted order rows` lo reportan.
+
 El log y la barra de acción dicen qué pasó:
 
 ```

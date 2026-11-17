@@ -123,6 +123,12 @@ Nunca dejar dos jars del mod en `mods/`: Fabric falla por mod id duplicado.
   búsqueda. Pero son un **fallback**: en cuanto ese ítem se escanea por su cuenta,
   sus filas incidentales se descartan y se reemplazan por el escaneo directo. Así
   nunca inflan una escalera. El archivo de captura conserva la página completa.
+- **Solo ítems sin encantar.** Una fila cuyo ítem trae
+  `minecraft:enchantments` o `minecraft:stored_enchantments` con entradas se
+  descarta en el parser: los encantamientos mueven el precio y falsean el profit
+  de crafteo. El id descartado se conserva aparte para que el autoscan sepa que
+  la página sí contenía el ítem pedido y no siga paginando; una página 1 que
+  queda vacía por el filtro retira las filas viejas de esa búsqueda.
 - Merge, con `search` (id del ítem buscado):
   - Página 1 de una búsqueda: borra **todas** las filas de esa búsqueda (la
     observación anterior) y las reemplaza. Se dispara solo en página 1 porque

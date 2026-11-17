@@ -318,3 +318,30 @@
 - **Consecuencia:** `0.10.1`, 53 tests (sin tests nuevos: el estado vive en el
   cliente y depende de `Minecraft`, que no se testea sin el juego). Documentado en
   `AGENTS.md` y `docs/AUTOSCAN.md`.
+
+## 2026-11-16 — Filtro de ítems encantados (0.10.2)
+
+- **Contexto:** el ranking de crafteo de DonutProfit ponía a las espadas de
+  diamante arriba, pero esas órdenes eran de espadas **encantadas**
+  (`Sharpness V`, `Mending`), mucho más caras que la espada plana. El profit de
+  crafteo comparaba peras con manzanas.
+- **Decisión del owner:** por ahora, el programa toma **solo objetos no
+  encantados**.
+- **Implementación:** `OrderMenuParser` inspecciona los componentes
+  `minecraft:enchantments` y `minecraft:stored_enchantments`; si el valor no es
+  `ItemEnchantments{enchantments={}}`, la fila se omite y se cuenta en un
+  warning. El filtro vive en el parser y no en la página para que el snapshot
+  nunca guarde precios encantados.
+- **Paginación:** el id del ítem omitido queda en `OrderMenu.skippedItemIds` y
+  `ScreenDumper.distinctItemIds` lo incluye. Sin eso, `/order elytra` (45 filas
+  encantadas) parecería no contener el objetivo y el autoscan paginaría hasta el
+  tope de 200 páginas.
+- **Página 1 vacía:** `exportAndStore` ya no devuelve sin tocar el snapshot
+  cuando el export queda vacío: en página 1 de una búsqueda fusiona un export
+  vacío con el `searchedItemId` explícito, y `mergeIntoSnapshot` retira las filas
+  viejas de esa búsqueda. Si no, las filas encantadas viejas sobrevivían.
+- **Alternativa descartada:** filtrar por lore (los nombres de encantamiento
+  aparecen en el lore). El lore puede cambiar de formato y no distingue un
+  encantamiento de una línea decorativa; los componentes son el dato real.
+- **Consecuencia:** `0.10.2`, 56 tests (3 nuevos de parser y 1 de merge). El
+  snapshot actual y Neon todavía tienen filas encantadas hasta re-escanear.

@@ -35,6 +35,7 @@
 | S16 | 2026-11-16 | Revisión de la corrida 0.10.0 | corrida, 248s, 2632filas, lore, menu-vacio, 0.10.1 |
 | S17 | 2026-11-16 | Datos reales en DonutProfit | neon, sync-orders, orders-only, bids, pricingBasis, source-isolation |
 | S18 | 2026-11-16 | Instalación de 0.10.1 | install, 0.10.1, hash, mods, empty-menu, retry |
+| S19 | 2026-11-16 | Filtro de ítems encantados | enchantments, plain-items, filter, 0.10.2 |
 
 ---
 
@@ -282,3 +283,24 @@
   146 órdenes incidentales.
 - **Pendiente:** validar el reintento en vivo con un menú que abra vacío.
 - **Keywords:** install, 0.10.1, hash, mods, empty-menu, retry.
+
+## S19 — Filtro de ítems encantados
+
+- **El humano pidió:** el ranking decía que craftear espadas de diamante era lo
+  más rentable, pero esas espadas estaban encantadas y valían más por eso. Por
+  ahora, el programa debe tomar solo objetos no encantados.
+- **Hecho en `0.10.2`:** el parser descarta filas con `minecraft:enchantments` o
+  `minecraft:stored_enchantments` no vacíos, cuenta las omitidas y avisa en el
+  warning. `OrderMenu.skippedItemIds` conserva los ids para que el autoscan no
+  siga paginando cuando la página solo tiene variantes encantadas.
+- **Merge:** una página 1 que queda vacía por el filtro ahora fusiona un export
+  vacío con el `searchedItemId`, así retira las filas viejas de esa búsqueda en
+  vez de dejarlas.
+- **Tests:** 56 verdes. `orders-global-page1.json` pasa de 45 a 9 filas (36
+  elytras encantadas); `orders-diamond-search-page1.json` pasa de 44 a 0 (todas
+  las variantes de armadura encantadas).
+- **Instalado:** `0.10.2` en `mods/`, hash `9AB9A9E5E47DCD4ECF660A30E7737AA726D565A9EC908CFACB29A3213467DF24`,
+  reemplazó a `0.10.1`.
+- **Pendiente:** re-escanear y `pnpm sync-orders --commit` para purgar de Neon
+  las filas encantadas de la corrida `0.10.0`.
+- **Keywords:** enchantments, plain-items, filter, skipped, page-1, 0.10.2.

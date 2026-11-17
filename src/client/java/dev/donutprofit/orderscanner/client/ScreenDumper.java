@@ -112,14 +112,24 @@ public final class ScreenDumper {
     public static ExportResult exportAndStore(ScreenDump dump, String searchedItemId) throws Exception {
         OrderMenu menu = OrderMenuParser.parse(dump);
         if (menu.orders().isEmpty()) {
-            return new ExportResult(0, menu.warnings().size(), null, null, List.of());
+            // An empty page 1 is still an observation: retire the previous rows
+            // of that search so an all-enchanted page does not leave stale
+            // prices behind.
+            Path snapshot = null;
+            if (searchedItemId != null && menu.page() == 1) {
+                OrderExport empty = OrderExport.of(
+                        menu, dump.modVersion(), dump.capturedAt(), dump.screenTitle());
+                snapshot = OrderExportStore.mergeIntoSnapshot(dumpsDirectory(), empty, searchedItemId);
+            }
+            return new ExportResult(
+                    0, menu.warnings().size(), null, snapshot, distinctItemIds(menu));
         }
         Path directory = dumpsDirectory();
         OrderExport export = OrderExport.of(menu, dump.modVersion(), dump.capturedAt(), dump.screenTitle());
         Path capture = OrderExportStore.writeCapture(directory, export);
 
         OrderExport stored = searchedItemId == null ? export : export.forSearch(searchedItemId);
-        Path snapshot = stored.isEmpty() ? null : OrderExportStore.mergeIntoSnapshot(directory, stored);
+        Path snapshot = OrderExportStore.mergeIntoSnapshot(directory, stored, searchedItemId);
         LOGGER.info("Exported {} orders to {} ({} stored, snapshot {})",
                 menu.orders().size(), capture, stored.orders().size(), snapshot);
         return new ExportResult(
@@ -130,11 +140,21 @@ public final class ScreenDumper {
                 distinctItemIds(menu));
     }
 
+    /**
+     * Items seen on the page, in slot order. Enchanted rows are included even
+     * though they are not stored: the scanner uses this list to know whether the
+     * page contains the item it asked for and to stop paging.
+     */
     private static List<String> distinctItemIds(OrderMenu menu) {
         List<String> ids = new ArrayList<>();
         for (ParsedOrder order : menu.orders()) {
             if (!ids.contains(order.itemId())) {
                 ids.add(order.itemId());
+            }
+        }
+        for (String itemId : menu.skippedItemIds()) {
+            if (!ids.contains(itemId)) {
+                ids.add(itemId);
             }
         }
         return List.copyOf(ids);

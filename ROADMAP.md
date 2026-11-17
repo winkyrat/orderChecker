@@ -53,6 +53,11 @@
       otros ítems valen como fallback y se retiran al escanear ese ítem directo.
 - [x] Reintento de menú vacío en página 1 (0.10.1): 200 ms y una relectura antes
       de aceptar que la búsqueda no tiene resultados.
+- [x] Excluir ítems encantados (0.10.2): el parser descarta filas con
+      `enchantments`/`stored_enchantments`; el autoscan conserva el id para cortar
+      la paginación y una página 1 vacía retira las filas viejas de esa búsqueda.
+- [ ] Re-escanear con 0.10.2 y `pnpm sync-orders --commit` para purgar de Neon
+      las filas encantadas de la corrida 0.10.0.
 - [ ] **Lista definitiva** desde el grafo de recetas (materias primas + ítems
       crafteados). La aporta el owner; es el bloqueo B3.
 - [ ] Investigar el filtro del menú (slot 47) para acortar la paginación de las
@@ -102,6 +107,8 @@
 
 ## Fase 7 — Futuro (no bloqueante)
 
+- [ ] Precio propio para ítems encantados (hoy se descartan a propósito; haría
+      falta separar el encantamiento del ítem base).
 - [ ] HUD/status line con progreso de la sesión.
 - [ ] Deduplicación de órdenes entre sesiones (misma orden vista dos veces).
 - [ ] Editor/validación de la lista de ítems desde el juego.

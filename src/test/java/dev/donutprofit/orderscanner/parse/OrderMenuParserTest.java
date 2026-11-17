@@ -1,6 +1,7 @@
 package dev.donutprofit.orderscanner.parse;
 
 import com.google.gson.Gson;
+import dev.donutprofit.orderscanner.dump.ComponentDump;
 import dev.donutprofit.orderscanner.dump.ScreenDump;
 import dev.donutprofit.orderscanner.dump.SlotDump;
 import org.junit.jupiter.api.Test;
@@ -125,12 +126,15 @@ class OrderMenuParserTest {
     void readsMillionPricesFromTheGlobalList() throws Exception {
         OrderMenu menu = OrderMenuParser.parse(fixture("orders-global-page1.json"));
 
-        assertEquals(45, menu.orders().size());
+        assertEquals(9, menu.orders().size(), "36 of the 45 elytra rows are enchanted and skipped");
         assertTrue(menu.orders().stream()
                         .allMatch(order -> order.itemId().equals("minecraft:elytra")),
-                "the unfiltered list starts with the most expensive orders");
-        assertEquals(585_000_000L, menu.orders().get(0).unitPrice(), "$ 585M each");
-        assertEquals(530_000_000L, menu.orders().get(44).unitPrice(), "$ 530M each");
+                "the unfiltered list starts with the most expensive plain orders");
+        assertEquals(569_000_000L, menu.orders().get(0).unitPrice(), "$ 569M each");
+        assertEquals(540_000_000L, menu.orders().get(8).unitPrice(), "$ 540M each");
+        assertEquals(List.of(5, 21, 23, 24, 25, 31, 37, 38, 40),
+                menu.orders().stream().map(ParsedOrder::slot).collect(Collectors.toList()),
+                "the plain rows are the ones that survive the enchantment filter");
     }
 
     @Test
@@ -162,17 +166,17 @@ class OrderMenuParserTest {
     }
 
     @Test
-    void aSearchCanReturnSeveralItemVariants() throws Exception {
+    void skipsEnchantedVariantsFromASearch() throws Exception {
         OrderMenu menu = OrderMenuParser.parse(fixture("orders-diamond-search-page1.json"));
 
-        assertEquals(44, menu.orders().size(), "45 rows minus one already fully delivered");
-        Set<String> items = menu.orders().stream()
-                .map(ParsedOrder::itemId)
-                .collect(Collectors.toSet());
+        assertTrue(menu.orders().isEmpty(), "every order row on this page is enchanted");
+        assertEquals(44, menu.skippedItemIds().size(), "45 rows minus the one already fully delivered");
         assertEquals(Set.of("minecraft:diamond_leggings", "minecraft:diamond_boots", "minecraft:diamond_spear"),
-                items);
+                Set.copyOf(menu.skippedItemIds()));
         assertTrue(menu.warnings().stream().anyMatch(w -> w.contains("fully delivered")),
                 "the completed order is reported, not silently dropped");
+        assertTrue(menu.warnings().stream().anyMatch(w -> w.contains("enchanted")),
+                "the enchantment filter is reported, not silent");
     }
 
     @Test
@@ -191,6 +195,57 @@ class OrderMenuParserTest {
 
         assertTrue(menu.orders().isEmpty());
         assertTrue(menu.warnings().stream().anyMatch(w -> w.contains("fully delivered")));
+    }
+
+    @Test
+    void keepsPlainItemsAndSkipsEnchantedOnes() {
+        ComponentDump plain = new ComponentDump(
+                "minecraft:enchantments", "ItemEnchantments{enchantments={}}");
+        ComponentDump sharpness = new ComponentDump(
+                "minecraft:enchantments",
+                "ItemEnchantments{enchantments={Reference{ResourceKey[minecraft:enchantment / minecraft:sharpness]"
+                        + "=Enchantment Sharpness}=>5}}");
+
+        OrderMenu menu = OrderMenuParser.parse(dumpWith(
+                orderSlot(0, "minecraft:diamond_sword", "833K", sharpness),
+                orderSlot(1, "minecraft:diamond_sword", "120K", plain),
+                orderSlot(2, "minecraft:stone", "1K")));
+
+        assertEquals(2, menu.orders().size(),
+                "plain rows are kept, including an item with no enchantment component");
+        assertEquals(120_000L, menu.orders().get(0).unitPrice());
+        assertEquals("minecraft:stone", menu.orders().get(1).itemId());
+        assertEquals(List.of("minecraft:diamond_sword"), menu.skippedItemIds());
+        assertTrue(menu.warnings().stream().anyMatch(w -> w.contains("enchanted")));
+    }
+
+    @Test
+    void filtersStoredEnchantmentsOnEnchantedBooks() {
+        ComponentDump mending = new ComponentDump(
+                "minecraft:stored_enchantments",
+                "ItemEnchantments{enchantments={Reference{ResourceKey[minecraft:enchantment / minecraft:mending]"
+                        + "=Enchantment Mending}=>1}}");
+
+        OrderMenu menu = OrderMenuParser.parse(dumpWith(
+                orderSlot(0, "minecraft:enchanted_book", "2M", mending)));
+
+        assertTrue(menu.orders().isEmpty());
+        assertEquals(List.of("minecraft:enchanted_book"), menu.skippedItemIds());
+    }
+
+    private static ScreenDump dumpWith(SlotDump... slots) {
+        return new ScreenDump(
+                1, "0.2.0", "2026-11-13T00:00:00Z", "1.21.11", "screen", "Orders (Page 1)", "",
+                "menu", 0, 640, 480,
+                new SlotDump(-1, -1, -1, -1, "", "", 0, "", false, List.of(), List.of()),
+                slots.length, List.of(slots));
+    }
+
+    private static SlotDump orderSlot(int index, String itemId, String price, ComponentDump... components) {
+        return new SlotDump(
+                index, index, 0, 0, "container", itemId, 1, itemId, false,
+                List.of("", "$ " + price + " each", "0/10 Delivered", "", "Click to deliver items"),
+                List.of(components));
     }
 
     @Test

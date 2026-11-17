@@ -217,6 +217,26 @@ class OrderExportStoreTest {
         assertEquals(1, merged.orders().size(), "the same order seen by two searches is one row");
     }
 
+    @Test
+    void anEmptyPageOneRetiresThePreviousRowsOfThatSearch() throws Exception {
+        OrderExportStore.mergeIntoSnapshot(tempDir, export(1, "2026-11-16T08:00:00Z",
+                searchedRow("minecraft:diamond_leggings", 1, 0, 90000, 5, "2026-11-16T08:00:00Z"),
+                searchedRow("minecraft:diamond_boots", 1, 1, 80000, 5, "2026-11-16T08:00:00Z")));
+
+        OrderExport empty = new OrderExport(
+                OrderExport.SCHEMA_VERSION, "0.3.0", OrderExport.SOURCE,
+                "2026-11-16T09:00:00Z", "2026-11-16T09:00:00Z",
+                "Orders (Page 1)", 1, List.of(), List.of());
+
+        Path snapshot = OrderExportStore.mergeIntoSnapshot(
+                tempDir, empty, "minecraft:diamond_leggings");
+
+        OrderExport merged = OrderExportStore.read(snapshot);
+        assertNotNull(merged);
+        assertEquals(1, merged.orders().size(), "only the rows of the empty search are retired");
+        assertEquals("minecraft:diamond_boots", merged.orders().get(0).itemId());
+    }
+
     private static OrderExport.Row find(OrderExport export, String itemId, int page) {
         return export.orders().stream()
                 .filter(row -> row.itemId().equals(itemId) && row.page() == page)

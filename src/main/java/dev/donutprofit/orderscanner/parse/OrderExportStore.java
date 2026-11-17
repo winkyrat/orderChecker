@@ -80,6 +80,22 @@ public final class OrderExportStore {
      * @return the snapshot path.
      */
     public static Path mergeIntoSnapshot(Path directory, OrderExport export) throws IOException {
+        return mergeIntoSnapshot(directory, export, null);
+    }
+
+    /**
+     * Same as {@link #mergeIntoSnapshot(Path, OrderExport)}, plus the id of the
+     * item that was searched.
+     *
+     * <p>A page 1 can legitimately produce no rows at all, for example when
+     * every order on it was filtered out as enchanted. The previous observation
+     * of that search must not survive an empty observation, so the search is
+     * passed explicitly and retired like any other page-1 capture.
+     *
+     * @param searchedItemId the item id the scanner asked for, or {@code null}.
+     */
+    public static Path mergeIntoSnapshot(Path directory, OrderExport export, String searchedItemId)
+            throws IOException {
         Files.createDirectories(directory);
         Path snapshot = directory.resolve(SNAPSHOT_FILE);
 
@@ -115,6 +131,11 @@ public final class OrderExportStore {
         // a time. Clearing on every page would make page 2 delete what page 1
         // just stored, so the previous observation is retired only on page 1.
         boolean startsSearch = export.page() == 1;
+        if (searchedItemId != null && startsSearch) {
+            // An empty page 1 has no rows to tag, so the search it belongs to
+            // has to be named explicitly for the retirement below to see it.
+            searches.add(searchedItemId);
+        }
 
         rows.entrySet().removeIf(entry -> {
             OrderExport.Row row = entry.getValue();

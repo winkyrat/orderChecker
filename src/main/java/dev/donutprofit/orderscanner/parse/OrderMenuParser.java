@@ -1,5 +1,6 @@
 package dev.donutprofit.orderscanner.parse;
 
+import dev.donutprofit.orderscanner.dump.ComponentDump;
 import dev.donutprofit.orderscanner.dump.ScreenDump;
 import dev.donutprofit.orderscanner.dump.SlotDump;
 
@@ -19,6 +20,10 @@ import java.util.regex.Pattern;
  * 45 slots are orders, the last row holds navigation and the bottom inventory
  * belongs to the player. Order slots are recognized by their lore, not by their
  * position, so a layout change does not silently produce garbage.
+ *
+ * <p>Only plain items are exported: a row whose item carries enchantments is
+ * skipped, because enchantments move the price away from the plain item that
+ * crafting profit compares against.
  */
 public final class OrderMenuParser {
     /** {@code "$ 4K each"} — the price the order pays per unit. */
@@ -30,6 +35,13 @@ public final class OrderMenuParser {
     private static final Pattern PAGE =
             Pattern.compile("Page\\s+(\\d+)", Pattern.CASE_INSENSITIVE);
     private static final Pattern LORE_ONLY_VALUE = Pattern.compile("^~\\$.*");
+
+    /** Data component that carries enchantments on gear and tools. */
+    private static final String ENCHANTMENTS = "minecraft:enchantments";
+    /** Data component that carries enchantments on enchanted books. */
+    private static final String STORED_ENCHANTMENTS = "minecraft:stored_enchantments";
+    /** How an empty enchantment component renders; anything else has entries. */
+    private static final String NO_ENCHANTMENTS = "enchantments={}";
 
     private OrderMenuParser() {
     }
@@ -50,6 +62,7 @@ public final class OrderMenuParser {
     public static OrderMenu parse(ScreenDump dump) {
         List<ParsedOrder> orders = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
+        List<String> skippedItemIds = new ArrayList<>();
         int page = 1;
 
         String title = dump.screenTitle() == null ? "" : dump.screenTitle();
@@ -128,6 +141,15 @@ public final class OrderMenuParser {
                 continue;
             }
 
+            // Enchanted gear is priced by its enchantments, not by the plain
+            // item, so mixing it in would inflate crafting costs and profit.
+            // Only plain items are priced for now; the row is remembered so the
+            // autonomous scanner still knows the page held the item it asked for.
+            if (hasEnchantments(slot)) {
+                skippedItemIds.add(slot.itemId().toLowerCase(Locale.ROOT));
+                continue;
+            }
+
             orders.add(new ParsedOrder(
                     slot.index(),
                     slot.itemId().toLowerCase(Locale.ROOT),
@@ -138,10 +160,47 @@ public final class OrderMenuParser {
                     remaining));
         }
 
-        if (orders.isEmpty()) {
-            warnings.add("No order rows found. Is this the orders menu?");
+        if (!skippedItemIds.isEmpty()) {
+            warnings.add("Skipped " + skippedItemIds.size()
+                    + " enchanted order rows; only plain items are priced.");
         }
 
-        return new OrderMenu(page, List.copyOf(orders), List.copyOf(warnings));
+        if (orders.isEmpty()) {
+            if (skippedItemIds.isEmpty()) {
+                warnings.add("No order rows found. Is this the orders menu?");
+            } else {
+                warnings.add("No plain order rows found; every row was enchanted.");
+            }
+        }
+
+        return new OrderMenu(
+                page,
+                List.copyOf(orders),
+                List.copyOf(warnings),
+                List.copyOf(skippedItemIds));
+    }
+
+    /**
+     * True when the item carries at least one enchantment.
+     *
+     * <p>An unenchanted item still exposes {@code minecraft:enchantments}, but
+     * its value renders as {@code ItemEnchantments{enchantments={}}}. Enchanted
+     * books store theirs in {@code minecraft:stored_enchantments}. A missing
+     * component means no enchantments.
+     */
+    private static boolean hasEnchantments(SlotDump slot) {
+        for (ComponentDump component : slot.components()) {
+            if (component == null || component.id() == null) {
+                continue;
+            }
+            if (!ENCHANTMENTS.equals(component.id()) && !STORED_ENCHANTMENTS.equals(component.id())) {
+                continue;
+            }
+            String value = component.value() == null ? "" : component.value();
+            if (!value.contains(NO_ENCHANTMENTS)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

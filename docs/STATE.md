@@ -7,13 +7,14 @@
 
 - Fecha: 2026-11-16.
 - Fase: **Fase 3 verificada en vivo**, con preset de throughput y filas
-  incidentales. `0.10.1` corre `1-3 s` con sesgo corto y `pageDelay` 350-900 ms,
+  incidentales. `0.10.2` corre `1-3 s` con sesgo corto y `pageDelay` 350-900 ms,
   `maxPages` 200. Corta en la primera página que contiene el ítem, **guarda toda
   la página** (las filas de otros ítems valen como dato) y siempre usa
-  `Most Per Item`. `0.10.1` agrega un reintento cuando la página 1 abre vacía.
-- Build/tests: `gradlew build` verde. **53 tests** (dumps, parser, snapshot,
-  merge por página/búsqueda/incidental, config, ritmo, topes de ítems/páginas,
-  cursor de ítems). Fixtures reales.
+  `Most Per Item`. `0.10.1` agrega un reintento cuando la página 1 abre vacía;
+  `0.10.2` descarta las filas de ítems encantados.
+- Build/tests: `gradlew build` verde. **56 tests** (dumps, parser, filtro de
+  encantamientos, snapshot, merge por página/búsqueda/incidental, config, ritmo,
+  topes de ítems/páginas, cursor de ítems). Fixtures reales.
 - Aprobación del owner para Fase 1: **dada** (eligió modo C y aceptó el riesgo).
 - **Corrida 0.10.0 (2026-11-16, 18:17:58–18:22:06):** 103 búsquedas en 248 s
   (~2,4 s/ítem), 159 exports de página, 5.514 filas guardadas, snapshot de 2.632
@@ -22,6 +23,28 @@
   (`netherite_boots`) y ningún ítem mezcló filas incidentales con escaneo directo.
 - **Hallazgo:** el buscador matchea también **lore y encantamientos** (ver
   `docs/AUTOSCAN.md`), por eso las materias primas baratas quedan profundo.
+
+## Filtro de encantamientos (`0.10.2`, 2026-11-16)
+
+El profit de crafteo comparaba el costo de las materias primas contra la orden
+del ítem final, pero las espadas de diamante que dominaban el ranking estaban
+encantadas (`Sharpness V`, `Mending`, etc.) y valían mucho más por eso. El owner
+pidió que, **por ahora, el programa tome solo objetos no encantados**.
+
+- El parser detecta `minecraft:enchantments` y `minecraft:stored_enchantments`
+  (libros) y omite la fila cuando el valor no es `ItemEnchantments{enchantments={}}`.
+- Las filas omitidas se cuentan y generan warning; no se descartan en silencio.
+- El id del ítem omitido se conserva en `OrderMenu.skippedItemIds` para que el
+  autoscan vea que la página contenía el objetivo y corte en vez de paginar 200
+  páginas. `distinctItemIds` los incluye.
+- Si una página 1 queda vacía por el filtro, `exportAndStore` fusiona un export
+  vacío con el `searchedItemId` explícito para retirar las filas viejas de esa
+  búsqueda (`mergeIntoSnapshot(..., searchedItemId)`).
+- Fixtures: `orders-global-page1.json` pasa de 45 a 9 filas (36 elytras
+  encantadas); `orders-diamond-search-page1.json` pasa de 44 a 0 (todas las
+  variantes de armadura están encantadas).
+- **Pendiente:** re-escanear con `0.10.2` y `pnpm sync-orders --commit` para
+  reemplazar en Neon las filas encantadas que quedaron de la corrida `0.10.0`.
 
 ## Verificación en vivo de `0.7.0` (2026-11-16, 05:25)
 
@@ -170,7 +193,7 @@ Perfil aislado, para no mezclar Wurst con DonutSMP:
 | --- | --- |
 | Perfil del launcher | `Donut Scanner 1.21.11` → versión `fabric-loader-0.20.1-1.21.11` |
 | Carpeta de juego | `%APPDATA%\.minecraft-donutscanner\` |
-| Mods | `donut-order-scanner-0.10.1.jar` (instalado), `fabric-api-0.141.6+1.21.11.jar` |
+| Mods | `donut-order-scanner-0.10.2.jar` (instalado), `fabric-api-0.141.6+1.21.11.jar` |
 | Dumps y exports | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\dumps\` |
 | Config del escaneo | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\scan.json` |
 | Cursor de ítems | `%APPDATA%\.minecraft-donutscanner\config\donut_order_scanner\scan-cursor.txt` |
@@ -192,6 +215,13 @@ Perfil aislado, para no mezclar Wurst con DonutSMP:
 > quedan `0.10.1` y `fabric-api`. Agrega el reintento de menú vacío en página 1:
 > si la página 1 abre sin slots, relee una vez a los 200 ms antes de creer que
 > no hay resultados.
+>
+> `0.10.2` **instalado** el 2026-11-16 (hash `9AB9A9E5…DF24` verificado contra
+> `build/libs/` y contra el jar copiado). Reemplazó a `0.10.1`; en `mods/` solo
+> quedan `0.10.2` y `fabric-api`. Descarta las filas de ítems encantados y retira
+> las filas viejas cuando una página 1 queda vacía por el filtro. El juego estaba
+> cerrado al copiar. **Falta re-escanear** para purgar de `orders.json`/Neon las
+> filas encantadas de la corrida `0.10.0`.
 
 ### Incidente 0.4.0 (2026-11-16)
 
@@ -358,9 +388,13 @@ npx tsx scripts/load-orders.ts "<ruta>\orders.json"
 
 ## Próximo paso exacto
 
-1. **`0.10.1` instalado** el 2026-11-16. Próxima corrida: verificar en vivo que
-   `netherite_boots` (u otro menú que abra vacío en página 1) ya no quede como
-   "no encontrado" con el reintento de 200 ms.
+1. **`0.10.2` instalado** el 2026-11-16. Próxima corrida: re-escanear con F9
+   para reemplazar las filas encantadas que quedaron en `orders.json` (la corrida
+   `0.10.0` las guardó). Verificar en el log los warnings `Skipped N enchanted
+   order rows` y que una búsqueda como `diamond` no siga paginando cuando todas
+   sus variantes están encantadas. Después, `pnpm sync-orders --commit` en
+   `../oreboard` para purgar Neon. De paso, verificar que `netherite_boots` (u
+   otro menú que abra vacío en página 1) ya no quede como "no encontrado".
 2. **Integración con DonutProfit: hecha (2026-11-16).** El `orders.json` de la
    corrida 0.10.0 se validó y se cargó en Neon con `pnpm sync-orders --commit`:
    2.632 órdenes / 106 ítems, 2.439 filas nuevas y 193 duplicadas por
